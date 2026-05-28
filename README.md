@@ -1,6 +1,6 @@
 # Utils
 
-A self-hosted collection of browser-based utilities for common text and data tasks. No backend, no build step — pure HTML/CSS/JS.
+A self-hosted collection of browser-based utilities for common text and data tasks. No backend, no build step, just pure HTML/CSS/JS.
 
 
 ## Intent
@@ -11,25 +11,26 @@ Provide a fast, offline-capable toolbox for day-to-day developer text operations
 ## Structure
 
 ```
-index.html          Landing page — card grid linking to each utility
+index.html          Landing page - card grid linking to each utility
 utility/
   text.html         Line-based text operations
   json.html         JSON formatting and validation
   base64.html       Base64 encoding and decoding
   password.html     Random password generator
+  colorpicker.html  Color picker with format conversions and tools
 Notes.md            This file
 ```
 
 
 ## Design guidelines
 
-- **Layout**: Whenever applicable, utility page uses a three-column layout — Input | Options | Output — filling the full viewport height. 
+- **Layout**: Whenever applicable, utility page uses a three-column layout — Input | Options | Output - filling the full viewport height. 
 - **Preview flow**: All current operations are lightweight and update the output in real time as the user types or changes options.
 - **Commit flow**: Once the output looks correct, the **Commit** button replaces the input with the output, allowing operations to be chained.
 - **Copy**: A **Copy** button in the output panel writes to the clipboard.
 
 ### Styling guidelines
-- **Theme**: VS Code-inspired. Fully self-contained — no external stylesheets or scripts.
+- **Theme**: VS Code-inspired. Fully self-contained - no external stylesheets or scripts.
 
 **Common**
 | Variable          | Value     | Role                        |
@@ -158,6 +159,27 @@ Processing pipeline order: trim → remove empty → deduplicate → sort.
 
 ---
 
+### Color Picker (`utility/colorpicker.html`)
+
+**Implemented:**
+- **Color swatch** — large preview that opens the native OS color picker on click
+- **Hex field** — manual entry accepting `#rrggbb` or `#rrggbbaa`; validates input live
+- **RGBA sliders** — individual sliders for R, G, B (0–255) and Alpha (0–100%); track gradients update in real time to reflect the current color
+- **Format conversions** — HEX, RGB, HSL, HSV, CMYK; RGBA / HSLA variants shown automatically when alpha < 1; copy button on each row
+- **Contrast checker** — calculates WCAG contrast ratios against white and black; badges indicate AAA (≥ 7:1), AA (≥ 4.5:1), AA Large (≥ 3:1), or Fail
+- **Harmony palette** — Complement, Split-complement (×2), Triadic (×2), Analogous (×2), Square (×2); click any swatch to load that color
+- **Tints & shades scale** — 11-step ramp mixing the current color toward black (shades) and white (tints); click any step to load it
+- **Color history** — automatically records each committed color (up to 64); click any history swatch to restore it
+
+**Planned:**
+- Eyedropper / screen color sampler (EyeDropper API)
+- Named CSS color lookup (show closest named color)
+- Palette export (CSS custom properties, JSON, or ASE)
+- Saved palettes with local-storage persistence
+- Color blindness simulation overlays
+
+---
+
 ## Planned utilities
 - XML
 - Regex
@@ -166,7 +188,6 @@ Processing pipeline order: trim → remove empty → deduplicate → sort.
 - Table (create a dynamic table with sortable columns and search filters based on a json input)
 - Toggleable/dynamic light/dark-mode in all utilities - leave it as just darkmode for now
 - Option to toggle darkmode
-- Color picker - Pick color from wheel or (whatever the quare is called), get color codes in different formats RGB, CMYK, etc. Pick multiple colors in a color pallette (set of colors) 
 
 ---
 

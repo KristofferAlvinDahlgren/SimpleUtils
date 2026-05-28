@@ -1,0 +1,236 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+  <meta charset="UTF-8">
+  <meta name="viewport" content="width=device-width, initial-scale=1.0">
+  <title>Text — Utils</title>
+  <style>
+    *, *::before, *::after { box-sizing: border-box; margin: 0; padding: 0; }
+    :root {
+      --bg: #1e1e1e; --surface: #252526; --surface-hover: #2a2d2e;
+      --border: #3c3c3c; --accent: #0078d4; --accent-hover: #106ebe;
+      --text: #d4d4d4; --text-dim: #888;
+      --mono: 'Cascadia Code', Consolas, 'Courier New', monospace;
+      --r: 5px; --success: #4ec9b0; --error: #f44747;
+    }
+    body {
+      font-family: -apple-system, BlinkMacSystemFont, 'Segoe UI', sans-serif;
+      background: var(--bg); color: var(--text);
+      height: 100vh; display: grid; grid-template-rows: auto 1fr; overflow: hidden;
+    }
+    header {
+      display: flex; align-items: center; gap: 16px;
+      padding: 0 20px; height: 48px; border-bottom: 1px solid var(--border);
+      flex-shrink: 0;
+    }
+    header a { color: var(--text-dim); text-decoration: none; font-size: 0.82rem; }
+    header a:hover { color: var(--text); }
+    header h1 { font-size: 1rem; font-weight: 600; }
+    main {
+      display: grid; grid-template-columns: 1fr 220px 1fr;
+      min-height: 0; overflow: hidden;
+    }
+    .panel {
+      display: flex; flex-direction: column;
+      padding: 14px; gap: 10px; min-height: 0; overflow: hidden;
+      border-right: 1px solid var(--border);
+    }
+    .panel:last-child { border-right: none; }
+    .label {
+      font-size: 0.68rem; font-weight: 700; text-transform: uppercase;
+      letter-spacing: 0.1em; color: var(--text-dim); flex-shrink: 0;
+    }
+    textarea {
+      flex: 1; min-height: 0; resize: none;
+      background: var(--surface); border: 1px solid var(--border);
+      border-radius: var(--r); color: var(--text);
+      font-family: var(--mono); font-size: 0.85rem; line-height: 1.65;
+      padding: 10px 12px; outline: none; transition: border-color 0.15s;
+    }
+    textarea:focus { border-color: var(--accent); }
+    textarea[readonly] { background: #222; cursor: default; }
+    .options-panel {
+      display: flex; flex-direction: column; gap: 16px;
+      padding: 14px; overflow-y: auto; min-height: 0;
+      border-right: 1px solid var(--border);
+    }
+    .opt-group { display: flex; flex-direction: column; gap: 8px; }
+    .opt-title {
+      font-size: 0.68rem; font-weight: 700; text-transform: uppercase;
+      letter-spacing: 0.1em; color: var(--text-dim);
+      border-bottom: 1px solid var(--border); padding-bottom: 5px;
+    }
+    .opt-row {
+      display: flex; align-items: center; justify-content: space-between;
+      gap: 8px; font-size: 0.83rem;
+    }
+    .opt-row label { cursor: pointer; user-select: none; }
+    input[type="checkbox"] {
+      width: 14px; height: 14px; cursor: pointer;
+      accent-color: var(--accent); flex-shrink: 0;
+    }
+    select {
+      background: #2d2d2d; border: 1px solid var(--border); border-radius: var(--r);
+      color: var(--text); padding: 3px 6px; font-size: 0.8rem; outline: none; cursor: pointer;
+    }
+    .status { font-size: 0.73rem; color: var(--text-dim); flex-shrink: 0; min-height: 1em; }
+    .action-row { display: flex; gap: 8px; flex-shrink: 0; }
+    .btn {
+      flex: 1; padding: 7px 0; border-radius: var(--r); border: none;
+      font-size: 0.8rem; font-weight: 500; cursor: pointer; transition: background 0.15s, opacity 0.15s;
+    }
+    .btn:disabled { opacity: 0.35; cursor: not-allowed; }
+    .btn-primary { background: var(--accent); color: #fff; }
+    .btn-primary:not(:disabled):hover { background: var(--accent-hover); }
+    .btn-ghost { background: transparent; border: 1px solid var(--border); color: var(--text); }
+    .btn-ghost:not(:disabled):hover { background: var(--surface-hover); }
+  </style>
+</head>
+<body>
+  <header>
+    <a href="../index.html">← Utils</a>
+    <h1>Text</h1>
+  </header>
+  <main>
+    <div class="panel">
+      <span class="label">Input</span>
+      <textarea id="input" placeholder="Paste or type text here…" spellcheck="false"></textarea>
+    </div>
+
+    <div class="options-panel">
+      <div class="opt-group">
+        <div class="opt-title">Clean</div>
+        <div class="opt-row">
+          <label for="opt-trim">Trim whitespace</label>
+          <input type="checkbox" id="opt-trim">
+        </div>
+        <div class="opt-row">
+          <label for="opt-empty">Remove empty lines</label>
+          <input type="checkbox" id="opt-empty">
+        </div>
+      </div>
+
+      <div class="opt-group">
+        <div class="opt-title">Deduplicate</div>
+        <div class="opt-row">
+          <label for="opt-dedupe">Remove duplicates</label>
+          <input type="checkbox" id="opt-dedupe">
+        </div>
+        <div class="opt-row">
+          <label for="opt-dedupe-case">Case-insensitive</label>
+          <input type="checkbox" id="opt-dedupe-case">
+        </div>
+      </div>
+
+      <div class="opt-group">
+        <div class="opt-title">Sort</div>
+        <div class="opt-row">
+          <label for="opt-sort">Sort lines</label>
+          <input type="checkbox" id="opt-sort">
+        </div>
+        <div class="opt-row">
+          <label for="opt-sort-order">Order</label>
+          <select id="opt-sort-order">
+            <option value="asc">Ascending</option>
+            <option value="desc">Descending</option>
+          </select>
+        </div>
+        <div class="opt-row">
+          <label for="opt-sort-case">Case-insensitive</label>
+          <input type="checkbox" id="opt-sort-case" checked>
+        </div>
+      </div>
+    </div>
+
+    <div class="panel">
+      <span class="label">Output</span>
+      <textarea id="output" readonly placeholder="Output appears here…" spellcheck="false"></textarea>
+      <div id="status" class="status"></div>
+      <div class="action-row">
+        <button class="btn btn-ghost" id="btn-copy" disabled>Copy</button>
+        <button class="btn btn-primary" id="btn-commit" disabled title="Replace input with output">Commit</button>
+      </div>
+    </div>
+  </main>
+
+  <script>
+    const inputEl  = document.getElementById('input');
+    const outputEl = document.getElementById('output');
+    const statusEl = document.getElementById('status');
+    const btnCopy   = document.getElementById('btn-copy');
+    const btnCommit = document.getElementById('btn-commit');
+
+    const opts = {
+      trim:       document.getElementById('opt-trim'),
+      empty:      document.getElementById('opt-empty'),
+      dedupe:     document.getElementById('opt-dedupe'),
+      dedupeCase: document.getElementById('opt-dedupe-case'),
+      sort:       document.getElementById('opt-sort'),
+      sortOrder:  document.getElementById('opt-sort-order'),
+      sortCase:   document.getElementById('opt-sort-case'),
+    };
+
+    function process() {
+      const raw = inputEl.value;
+      let lines = raw.split('\n');
+      const inCount = lines.length;
+
+      // Pipeline: trim → remove empty → dedupe → sort
+      if (opts.trim.checked)  lines = lines.map(l => l.trim());
+      if (opts.empty.checked) lines = lines.filter(l => l.length > 0);
+      if (opts.dedupe.checked) {
+        const seen = new Set();
+        lines = lines.filter(l => {
+          const key = opts.dedupeCase.checked ? l.toLowerCase() : l;
+          if (seen.has(key)) return false;
+          seen.add(key);
+          return true;
+        });
+      }
+      if (opts.sort.checked) {
+        lines.sort((a, b) => {
+          const x = opts.sortCase.checked ? a.toLowerCase() : a;
+          const y = opts.sortCase.checked ? b.toLowerCase() : b;
+          return x < y ? -1 : x > y ? 1 : 0;
+        });
+        if (opts.sortOrder.value === 'desc') lines.reverse();
+      }
+
+      const result = lines.join('\n');
+      outputEl.value = result;
+
+      const hasOutput = result.length > 0;
+      btnCopy.disabled   = !hasOutput;
+      btnCommit.disabled = !hasOutput;
+
+      if (raw.length > 0) {
+        const removed = inCount - lines.length;
+        statusEl.textContent = `${lines.length} line${lines.length !== 1 ? 's' : ''}` +
+          (removed > 0 ? ` (−${removed})` : '');
+      } else {
+        statusEl.textContent = '';
+      }
+    }
+
+    inputEl.addEventListener('input', process);
+    Object.values(opts).forEach(el => el.addEventListener('change', process));
+
+    btnCopy.addEventListener('click', async () => {
+      try {
+        await navigator.clipboard.writeText(outputEl.value);
+      } catch {
+        outputEl.select();
+        document.execCommand('copy');
+      }
+      const prev = btnCopy.textContent;
+      btnCopy.textContent = 'Copied!';
+      setTimeout(() => { btnCopy.textContent = prev; }, 1500);
+    });
+
+    btnCommit.addEventListener('click', () => {
+      inputEl.value = outputEl.value;
+      process();
+    });
+  </script>
+</body>
+</html>

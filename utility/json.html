@@ -1,0 +1,257 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+  <meta charset="UTF-8">
+  <meta name="viewport" content="width=device-width, initial-scale=1.0">
+  <title>JSON — Utils</title>
+  <style>
+    *, *::before, *::after { box-sizing: border-box; margin: 0; padding: 0; }
+    :root {
+      --bg: #1e1e1e; --surface: #252526; --surface-hover: #2a2d2e;
+      --border: #3c3c3c; --accent: #0078d4; --accent-hover: #106ebe;
+      --text: #d4d4d4; --text-dim: #888;
+      --mono: 'Cascadia Code', Consolas, 'Courier New', monospace;
+      --r: 5px; --success: #4ec9b0; --error: #f44747;
+    }
+    body {
+      font-family: -apple-system, BlinkMacSystemFont, 'Segoe UI', sans-serif;
+      background: var(--bg); color: var(--text);
+      height: 100vh; display: grid; grid-template-rows: auto 1fr; overflow: hidden;
+    }
+    header {
+      display: flex; align-items: center; gap: 16px;
+      padding: 0 20px; height: 48px; border-bottom: 1px solid var(--border);
+      flex-shrink: 0;
+    }
+    header a { color: var(--text-dim); text-decoration: none; font-size: 0.82rem; }
+    header a:hover { color: var(--text); }
+    header h1 { font-size: 1rem; font-weight: 600; }
+    main {
+      display: grid; grid-template-columns: 1fr 220px 1fr;
+      min-height: 0; overflow: hidden;
+    }
+    .panel {
+      display: flex; flex-direction: column;
+      padding: 14px; gap: 10px; min-height: 0; overflow: hidden;
+      border-right: 1px solid var(--border);
+    }
+    .panel:last-child { border-right: none; }
+    .label {
+      font-size: 0.68rem; font-weight: 700; text-transform: uppercase;
+      letter-spacing: 0.1em; color: var(--text-dim); flex-shrink: 0;
+    }
+    textarea {
+      flex: 1; min-height: 0; resize: none;
+      background: var(--surface); border: 1px solid var(--border);
+      border-radius: var(--r); color: var(--text);
+      font-family: var(--mono); font-size: 0.85rem; line-height: 1.65;
+      padding: 10px 12px; outline: none; transition: border-color 0.15s;
+    }
+    textarea:focus { border-color: var(--accent); }
+    textarea[readonly] { background: #222; cursor: default; }
+    .options-panel {
+      display: flex; flex-direction: column; gap: 16px;
+      padding: 14px; overflow-y: auto; min-height: 0;
+      border-right: 1px solid var(--border);
+    }
+    .opt-group { display: flex; flex-direction: column; gap: 8px; }
+    .opt-title {
+      font-size: 0.68rem; font-weight: 700; text-transform: uppercase;
+      letter-spacing: 0.1em; color: var(--text-dim);
+      border-bottom: 1px solid var(--border); padding-bottom: 5px;
+    }
+    .opt-row {
+      display: flex; align-items: center; justify-content: space-between;
+      gap: 8px; font-size: 0.83rem;
+    }
+    .opt-row label { cursor: pointer; user-select: none; }
+    .opt-row label.radio-label {
+      display: flex; align-items: center; gap: 6px; cursor: pointer;
+    }
+    input[type="checkbox"], input[type="radio"] {
+      width: 14px; height: 14px; cursor: pointer;
+      accent-color: var(--accent); flex-shrink: 0;
+    }
+    select {
+      background: #2d2d2d; border: 1px solid var(--border); border-radius: var(--r);
+      color: var(--text); padding: 3px 6px; font-size: 0.8rem; outline: none; cursor: pointer;
+    }
+    .validation {
+      font-size: 0.78rem; line-height: 1.4; padding: 7px 9px;
+      border-radius: var(--r); background: #2a2a2a; border: 1px solid var(--border);
+      word-break: break-word;
+    }
+    .validation.ok  { color: var(--success); border-color: #3a4a43; }
+    .validation.err { color: var(--error);   border-color: #4a2a2a; }
+    .validation.empty { color: var(--text-dim); }
+    .status { font-size: 0.73rem; color: var(--text-dim); flex-shrink: 0; min-height: 1em; }
+    .action-row { display: flex; gap: 8px; flex-shrink: 0; }
+    .btn {
+      flex: 1; padding: 7px 0; border-radius: var(--r); border: none;
+      font-size: 0.8rem; font-weight: 500; cursor: pointer; transition: background 0.15s, opacity 0.15s;
+    }
+    .btn:disabled { opacity: 0.35; cursor: not-allowed; }
+    .btn-primary { background: var(--accent); color: #fff; }
+    .btn-primary:not(:disabled):hover { background: var(--accent-hover); }
+    .btn-ghost { background: transparent; border: 1px solid var(--border); color: var(--text); }
+    .btn-ghost:not(:disabled):hover { background: var(--surface-hover); }
+    #format-opts { transition: opacity 0.15s; }
+    #format-opts.hidden { opacity: 0.35; pointer-events: none; }
+  </style>
+</head>
+<body>
+  <header>
+    <a href="../index.html">← Utils</a>
+    <h1>JSON</h1>
+  </header>
+  <main>
+    <div class="panel">
+      <span class="label">Input</span>
+      <textarea id="input" placeholder='{"key": "value"}' spellcheck="false"></textarea>
+    </div>
+
+    <div class="options-panel">
+      <div class="opt-group">
+        <div class="opt-title">Mode</div>
+        <div class="opt-row">
+          <label class="radio-label">
+            <input type="radio" name="mode" value="format" checked> Format
+          </label>
+        </div>
+        <div class="opt-row">
+          <label class="radio-label">
+            <input type="radio" name="mode" value="minify"> Minify
+          </label>
+        </div>
+      </div>
+
+      <div class="opt-group" id="format-opts">
+        <div class="opt-title">Format options</div>
+        <div class="opt-row">
+          <label for="indent">Indent</label>
+          <select id="indent">
+            <option value="2">2 spaces</option>
+            <option value="4">4 spaces</option>
+            <option value="tab">Tab</option>
+          </select>
+        </div>
+        <div class="opt-row">
+          <label for="sort-keys">Sort keys</label>
+          <input type="checkbox" id="sort-keys">
+        </div>
+      </div>
+
+      <div class="opt-group">
+        <div class="opt-title">Validation</div>
+        <div id="validation" class="validation empty">No input</div>
+      </div>
+    </div>
+
+    <div class="panel">
+      <span class="label">Output</span>
+      <textarea id="output" readonly placeholder="Output appears here…" spellcheck="false"></textarea>
+      <div id="status" class="status"></div>
+      <div class="action-row">
+        <button class="btn btn-ghost" id="btn-copy" disabled>Copy</button>
+        <button class="btn btn-primary" id="btn-commit" disabled title="Replace input with output">Commit</button>
+      </div>
+    </div>
+  </main>
+
+  <script>
+    const inputEl     = document.getElementById('input');
+    const outputEl    = document.getElementById('output');
+    const statusEl    = document.getElementById('status');
+    const validEl     = document.getElementById('validation');
+    const formatOpts  = document.getElementById('format-opts');
+    const indentSel   = document.getElementById('indent');
+    const sortKeysEl  = document.getElementById('sort-keys');
+    const btnCopy     = document.getElementById('btn-copy');
+    const btnCommit   = document.getElementById('btn-commit');
+
+    function deepSortKeys(val) {
+      if (Array.isArray(val)) return val.map(deepSortKeys);
+      if (val !== null && typeof val === 'object') {
+        return Object.fromEntries(
+          Object.keys(val).sort().map(k => [k, deepSortKeys(val[k])])
+        );
+      }
+      return val;
+    }
+
+    function process() {
+      const raw = inputEl.value;
+
+      if (!raw.trim()) {
+        outputEl.value = '';
+        statusEl.textContent = '';
+        validEl.className = 'validation empty';
+        validEl.textContent = 'No input';
+        btnCopy.disabled = btnCommit.disabled = true;
+        return;
+      }
+
+      let parsed;
+      try {
+        parsed = JSON.parse(raw);
+      } catch (e) {
+        validEl.className = 'validation err';
+        validEl.textContent = e.message;
+        outputEl.value = '';
+        statusEl.textContent = '';
+        btnCopy.disabled = btnCommit.disabled = true;
+        return;
+      }
+
+      validEl.className = 'validation ok';
+      validEl.textContent = 'Valid JSON';
+
+      const mode = document.querySelector('[name="mode"]:checked').value;
+      let data = sortKeysEl.checked ? deepSortKeys(parsed) : parsed;
+      let result;
+
+      if (mode === 'format') {
+        const indent = indentSel.value === 'tab' ? '\t' : parseInt(indentSel.value, 10);
+        result = JSON.stringify(data, null, indent);
+      } else {
+        result = JSON.stringify(data);
+      }
+
+      outputEl.value = result;
+      const bytes = new TextEncoder().encode(result).length;
+      statusEl.textContent = bytes < 1024
+        ? `${bytes} B`
+        : `${(bytes / 1024).toFixed(1)} KB`;
+      btnCopy.disabled = btnCommit.disabled = false;
+    }
+
+    document.querySelectorAll('[name="mode"]').forEach(r => {
+      r.addEventListener('change', () => {
+        formatOpts.classList.toggle('hidden', r.value === 'minify' && r.checked);
+        process();
+      });
+    });
+
+    inputEl.addEventListener('input', process);
+    indentSel.addEventListener('change', process);
+    sortKeysEl.addEventListener('change', process);
+
+    btnCopy.addEventListener('click', async () => {
+      try {
+        await navigator.clipboard.writeText(outputEl.value);
+      } catch {
+        outputEl.select();
+        document.execCommand('copy');
+      }
+      const prev = btnCopy.textContent;
+      btnCopy.textContent = 'Copied!';
+      setTimeout(() => { btnCopy.textContent = prev; }, 1500);
+    });
+
+    btnCommit.addEventListener('click', () => {
+      inputEl.value = outputEl.value;
+      process();
+    });
+  </script>
+</body>
+</html>

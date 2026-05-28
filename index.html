@@ -1,0 +1,100 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+  <meta charset="UTF-8">
+  <meta name="viewport" content="width=device-width, initial-scale=1.0">
+  <title>Utils</title>
+  <style>
+    *, *::before, *::after { box-sizing: border-box; margin: 0; padding: 0; }
+    :root {
+      --bg: #1e1e1e;
+      --surface: #252526;
+      --surface-hover: #2a2d2e;
+      --border: #3c3c3c;
+      --accent: #0078d4;
+      --text: #d4d4d4;
+      --text-dim: #888;
+      --r: 6px;
+    }
+    body {
+      font-family: -apple-system, BlinkMacSystemFont, 'Segoe UI', sans-serif;
+      background: var(--bg);
+      color: var(--text);
+      min-height: 100vh;
+    }
+    header {
+      padding: 52px 40px 36px;
+      border-bottom: 1px solid var(--border);
+    }
+    h1 {
+      font-size: 1.75rem;
+      font-weight: 600;
+      letter-spacing: -0.02em;
+      margin-bottom: 6px;
+    }
+    header p {
+      color: var(--text-dim);
+      font-size: 0.875rem;
+    }
+    main {
+      padding: 36px 40px;
+    }
+    .grid {
+      display: grid;
+      grid-template-columns: repeat(auto-fill, minmax(200px, 240px));
+      gap: 12px;
+    }
+    a.card {
+      display: block;
+      padding: 20px 22px;
+      background: var(--surface);
+      border: 1px solid var(--border);
+      border-radius: var(--r);
+      text-decoration: none;
+      color: inherit;
+      transition: background 0.15s, border-color 0.15s;
+    }
+    a.card:hover {
+      background: var(--surface-hover);
+      border-color: var(--accent);
+    }
+    a.card h2 {
+      font-size: 0.95rem;
+      font-weight: 600;
+      margin-bottom: 6px;
+    }
+    a.card p {
+      font-size: 0.8rem;
+      color: var(--text-dim);
+      line-height: 1.55;
+    }
+  </style>
+</head>
+<body>
+  <header>
+    <h1>Utils</h1>
+    <p>Self-hosted text and data utilities</p>
+  </header>
+  <main>
+    <div class="grid">
+      <a href="utility/text.html" class="card">
+        <h2>Text</h2>
+        <p>Sort, deduplicate, trim, and clean up text lines</p>
+      </a>
+      <a href="utility/json.html" class="card">
+        <h2>JSON</h2>
+        <p>Format, minify, validate, and sort JSON</p>
+      </a>
+      <a href="utility/base64.html" class="card">
+        <h2>Base64</h2>
+        <p>Encode and decode with standard or URL-safe encoding</p>
+      </a>
+      <a href="utility/password.html" class="card">
+        <h2>Password</h2>
+        <p>Generate secure random passwords with configurable character sets</p>
+      </a>
+    </div>
+  </main>
+</body>
+</html>
+

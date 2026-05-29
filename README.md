@@ -28,6 +28,7 @@ Notes.md            This file
 - **Preview flow**: All current operations are lightweight and update the output in real time as the user types or changes options.
 - **Commit flow**: Once the output looks correct, the **Commit** button replaces the input with the output, allowing operations to be chained.
 - **Copy**: A **Copy** button in the output panel writes to the clipboard.
+- **Template**: A base template for utility pages can be found at utility/page-template.html
 
 ### Styling guidelines
 - **Theme**: VS Code-inspired. Fully self-contained - no external stylesheets or scripts.
@@ -38,7 +39,7 @@ Notes.md            This file
 | `--r`             | `5px`     | Border radius               |
 | `--mono`          | `'Cascadia Code', Consolas, 'Courier New', monospace` | Monospace font stack |
 
-**Dark mode** (current)
+**Dark mode**
 | Variable          | Value     | Role                        |
 |-------------------|-----------|-----------------------------|
 | `--bg`            | `#1e1e1e` | Page background             |
@@ -53,7 +54,7 @@ Notes.md            This file
 | `--warn`          | `#dcdcaa` | Warning feedback            |
 | `--error`         | `#f44747` | Error / invalid feedback    |
 
-**Light mode** (planned)
+**Light mode**
 | Variable          | Value     | Role                        |
 |-------------------|-----------|-----------------------------|
 | `--bg`            | `#f8f8f8` | Page background             |
@@ -186,8 +187,6 @@ Processing pipeline order: trim → remove empty → deduplicate → sort.
 - URL, email, phone (validator, formatter and sorter)
 - Templater (Apply a template to a given dataset (simple: replace keyword in a text with attributes form input. advanced: create tables from a large dataset))
 - Table (create a dynamic table with sortable columns and search filters based on a json input)
-- Toggleable/dynamic light/dark-mode in all utilities - leave it as just darkmode for now
-- Option to toggle darkmode
 
 ---
 

@@ -1,18 +1,37 @@
 <!DOCTYPE html>
-<html lang="en">
+<html lang="en" data-theme="dark">
 <head>
   <meta charset="UTF-8">
   <meta name="viewport" content="width=device-width, initial-scale=1.0">
   <title>Color Picker — Utils</title>
+  <script>
+    (function () {
+      const saved = localStorage.getItem('utils-theme');
+      const preferred = saved || (window.matchMedia('(prefers-color-scheme: light)').matches ? 'light' : 'dark');
+      document.documentElement.dataset.theme = preferred;
+    })();
+  </script>
   <style>
     *, *::before, *::after { box-sizing: border-box; margin: 0; padding: 0; }
     :root {
       --bg: #1e1e1e; --surface: #252526; --surface-hover: #2a2d2e;
+      --surface-deep: #222222; --input-bg: #2d2d2d;
       --border: #3c3c3c; --accent: #0078d4; --accent-hover: #106ebe;
       --text: #d4d4d4; --text-dim: #888;
       --mono: 'Cascadia Code', Consolas, 'Courier New', monospace;
-      --r: 5px;
+      --r: 5px; --success: #4ec9b0; --error: #f44747;
     }
+    [data-theme="light"] {
+      --bg: #f8f8f8; --surface: #ffffff; --surface-hover: #f0f0f0;
+      --surface-deep: #ebebeb; --input-bg: #f5f5f5;
+      --border: #d0d0d0; --accent: #0078d4; --accent-hover: #106ebe;
+      --text: #1f1f1f; --text-dim: #767676;
+      --success: #0e7a6e; --error: #c72e2e;
+    }
+    [data-theme="light"] .badge-pass { background: #d4f5ed; color: #0e7a6e; }
+    [data-theme="light"] .badge-fail { background: #fde8e8; color: #c72e2e; }
+    [data-theme="light"] .badge-aa   { background: #daeeff; color: #0065b3; }
+    [data-theme="light"] .scale-swatch { border-color: rgba(0,0,0,0.1); }
     body {
       font-family: -apple-system, BlinkMacSystemFont, 'Segoe UI', sans-serif;
       background: var(--bg); color: var(--text);
@@ -26,6 +45,17 @@
     header a { color: var(--text-dim); text-decoration: none; font-size: 0.82rem; }
     header a:hover { color: var(--text); }
     header h1 { font-size: 1rem; font-weight: 600; }
+    .header-spacer { flex: 1; }
+    .theme-toggle {
+      display: flex; align-items: center; justify-content: center;
+      width: 30px; height: 30px; padding: 0;
+      border: 1px solid var(--border); border-radius: var(--r);
+      background: transparent; color: var(--text-dim);
+      cursor: pointer; flex-shrink: 0;
+      transition: background 0.15s, color 0.15s, border-color 0.15s;
+    }
+    .theme-toggle:hover { background: var(--surface-hover); color: var(--text); border-color: var(--accent); }
+    .theme-toggle svg { display: block; pointer-events: none; }
     main {
       display: grid; grid-template-columns: 280px 1fr;
       min-height: 0; overflow: hidden;
@@ -60,13 +90,13 @@
       display: flex; align-items: center; gap: 8px;
     }
     #hex-field {
-      flex: 1; background: #2d2d2d; border: 1px solid var(--border);
+      flex: 1; background: var(--input-bg); border: 1px solid var(--border);
       border-radius: var(--r); color: var(--text);
       padding: 6px 10px; font-size: 0.875rem; font-family: var(--mono);
       outline: none; letter-spacing: 0.05em;
     }
     #hex-field:focus { border-color: var(--accent); }
-    #hex-field.invalid { border-color: #f44747; }
+    #hex-field.invalid { border-color: var(--error); }
 
     /* Sliders */
     .slider-group { display: flex; flex-direction: column; gap: 10px; }
@@ -146,7 +176,7 @@
       flex-shrink: 0; transition: background 0.15s, color 0.15s;
     }
     .btn-copy:hover { background: var(--surface-hover); color: var(--text); }
-    .btn-copy.copied { color: #4ec9b0; border-color: #4ec9b0; }
+    .btn-copy.copied { color: var(--success); border-color: var(--success); }
 
     /* Contrast */
     .contrast-grid {
@@ -208,6 +238,8 @@
   <header>
     <a href="../index.html">← Utils</a>
     <h1>Color Picker</h1>
+    <div class="header-spacer"></div>
+    <button class="theme-toggle" id="theme-toggle" aria-label="Toggle theme" title="Toggle theme"></button>
   </header>
   <main>
 
@@ -659,6 +691,23 @@
 
     // ── Init ────────────────────────────────────────────────────────────────
     render();
+  </script>
+  <script>
+    const SUN_SVG = `<svg width="15" height="15" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round"><circle cx="12" cy="12" r="5"/><line x1="12" y1="1" x2="12" y2="3"/><line x1="12" y1="21" x2="12" y2="23"/><line x1="4.22" y1="4.22" x2="5.64" y2="5.64"/><line x1="18.36" y1="18.36" x2="19.78" y2="19.78"/><line x1="1" y1="12" x2="3" y2="12"/><line x1="21" y1="12" x2="23" y2="12"/><line x1="4.22" y1="19.78" x2="5.64" y2="18.36"/><line x1="18.36" y1="5.64" x2="19.78" y2="4.22"/></svg>`;
+    const MOON_SVG = `<svg width="15" height="15" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round"><path d="M21 12.79A9 9 0 1 1 11.21 3 7 7 0 0 0 21 12.79z"/></svg>`;
+    const toggleBtn = document.getElementById('theme-toggle');
+    function applyTheme(theme) {
+      document.documentElement.dataset.theme = theme;
+      localStorage.setItem('utils-theme', theme);
+      const isDark = theme === 'dark';
+      toggleBtn.innerHTML = isDark ? SUN_SVG : MOON_SVG;
+      toggleBtn.setAttribute('aria-label', isDark ? 'Switch to light mode' : 'Switch to dark mode');
+      toggleBtn.setAttribute('title',      isDark ? 'Switch to light mode' : 'Switch to dark mode');
+    }
+    toggleBtn.addEventListener('click', () => {
+      applyTheme(document.documentElement.dataset.theme === 'dark' ? 'light' : 'dark');
+    });
+    applyTheme(document.documentElement.dataset.theme);
   </script>
 </body>
 </html>

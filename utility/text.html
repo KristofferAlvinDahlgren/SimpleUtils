@@ -99,6 +99,12 @@
       background: var(--input-bg); border: 1px solid var(--border); border-radius: var(--r);
       color: var(--text); padding: 3px 6px; font-size: 0.8rem; outline: none; cursor: pointer;
     }
+    .opt-input {
+      background: var(--input-bg); border: 1px solid var(--border); border-radius: var(--r);
+      color: var(--text); padding: 3px 6px; font-size: 0.8rem; outline: none;
+      width: 90px; font-family: var(--mono);
+    }
+    .opt-input:focus { border-color: var(--accent); }
     .status { font-size: 0.73rem; color: var(--text-dim); flex-shrink: 0; min-height: 1em; }
     .action-row { display: flex; gap: 8px; flex-shrink: 0; }
     .btn {
@@ -168,12 +174,71 @@
           <input type="checkbox" id="opt-sort-case" checked>
         </div>
       </div>
+
+      <div class="opt-group">
+        <div class="opt-title">Case</div>
+        <div class="opt-row">
+          <label for="opt-case">Convert</label>
+          <select id="opt-case">
+            <option value="none">None</option>
+            <option value="lower">Lowercase</option>
+            <option value="upper">Uppercase</option>
+            <option value="title">Title Case</option>
+            <option value="sentence">Sentence</option>
+          </select>
+        </div>
+      </div>
+
+      <div class="opt-group">
+        <div class="opt-title">Remove</div>
+        <div class="opt-row">
+          <label for="opt-accents">Accents</label>
+          <input type="checkbox" id="opt-accents">
+        </div>
+        <div class="opt-row">
+          <label for="opt-special">Special characters</label>
+          <input type="checkbox" id="opt-special">
+        </div>
+      </div>
+
+      <div class="opt-group">
+        <div class="opt-title">Split / Join</div>
+        <div class="opt-row">
+          <label for="opt-split-on">Split on</label>
+          <input type="text" class="opt-input" id="opt-split-on" placeholder="delimiter">
+        </div>
+        <div class="opt-row">
+          <label for="opt-join-with">Join with</label>
+          <input type="text" class="opt-input" id="opt-join-with" placeholder="separator">
+        </div>
+      </div>
+
+      <div class="opt-group">
+        <div class="opt-title">Encode / Decode</div>
+        <div class="opt-row">
+          <label for="opt-html-entities">HTML entities</label>
+          <select id="opt-html-entities">
+            <option value="none">None</option>
+            <option value="encode">Encode</option>
+            <option value="decode">Decode</option>
+          </select>
+        </div>
+        <div class="opt-row">
+          <label for="opt-url">URL</label>
+          <select id="opt-url">
+            <option value="none">None</option>
+            <option value="encode">Encode</option>
+            <option value="decode">Decode</option>
+          </select>
+        </div>
+      </div>
     </div>
 
     <div class="panel">
       <span class="label">Output</span>
       <textarea id="output" readonly placeholder="Output appears here…" spellcheck="false"></textarea>
       <div id="status" class="status"></div>
+      <div id="details" class="status"></div>
       <div class="action-row">
         <button class="btn btn-ghost" id="btn-copy" disabled>Copy</button>
         <button class="btn btn-primary" id="btn-commit" disabled title="Replace input with output">Commit</button>
@@ -185,25 +250,43 @@
     const inputEl  = document.getElementById('input');
     const outputEl = document.getElementById('output');
     const statusEl = document.getElementById('status');
+    const detailsEl = document.getElementById('details');
     const btnCopy   = document.getElementById('btn-copy');
     const btnCommit = document.getElementById('btn-commit');
 
     const opts = {
-      trim:       document.getElementById('opt-trim'),
-      empty:      document.getElementById('opt-empty'),
-      dedupe:     document.getElementById('opt-dedupe'),
-      dedupeCase: document.getElementById('opt-dedupe-case'),
-      sort:       document.getElementById('opt-sort'),
-      sortOrder:  document.getElementById('opt-sort-order'),
-      sortCase:   document.getElementById('opt-sort-case'),
+      trim:         document.getElementById('opt-trim'),
+      empty:        document.getElementById('opt-empty'),
+      dedupe:       document.getElementById('opt-dedupe'),
+      dedupeCase:   document.getElementById('opt-dedupe-case'),
+      sort:         document.getElementById('opt-sort'),
+      sortOrder:    document.getElementById('opt-sort-order'),
+      sortCase:     document.getElementById('opt-sort-case'),
+      caseConvert:  document.getElementById('opt-case'),
+      accents:      document.getElementById('opt-accents'),
+      special:      document.getElementById('opt-special'),
+      splitOn:      document.getElementById('opt-split-on'),
+      joinWith:     document.getElementById('opt-join-with'),
+      htmlEntities: document.getElementById('opt-html-entities'),
+      url:          document.getElementById('opt-url'),
     };
+
+    function htmlEncode(s) {
+      return s.replace(/&/g, '&amp;').replace(/</g, '&lt;').replace(/>/g, '&gt;')
+              .replace(/"/g, '&quot;').replace(/'/g, '&#39;');
+    }
+    function htmlDecode(s) {
+      const ta = document.createElement('textarea');
+      ta.innerHTML = s;
+      return ta.value;
+    }
 
     function process() {
       const raw = inputEl.value;
       let lines = raw.split('\n');
       const inCount = lines.length;
 
-      // Pipeline: trim → remove empty → dedupe → sort
+      // Pipeline: trim → remove empty → dedupe → sort → case → remove accents → remove special → split → join → HTML entities → URL
       if (opts.trim.checked)  lines = lines.map(l => l.trim());
       if (opts.empty.checked) lines = lines.filter(l => l.length > 0);
       if (opts.dedupe.checked) {
@@ -223,6 +306,41 @@
         });
         if (opts.sortOrder.value === 'desc') lines.reverse();
       }
+      if (opts.caseConvert.value !== 'none') {
+        lines = lines.map(l => {
+          switch (opts.caseConvert.value) {
+            case 'lower':    return l.toLowerCase();
+            case 'upper':    return l.toUpperCase();
+            case 'title':    return l.replace(/\S+/g, w => w.charAt(0).toUpperCase() + w.slice(1).toLowerCase());
+            case 'sentence': return l.length > 0 ? l.charAt(0).toUpperCase() + l.slice(1).toLowerCase() : l;
+          }
+          return l;
+        });
+      }
+      if (opts.accents.checked) {
+        lines = lines.map(l => l.normalize('NFD').replace(/[\u0300-\u036f]/g, ''));
+      }
+      if (opts.special.checked) {
+        lines = lines.map(l => l.replace(/[^\p{L}\p{N}\s]/gu, ''));
+      }
+      const splitVal = opts.splitOn.value;
+      if (splitVal) {
+        lines = lines.flatMap(l => l.split(splitVal));
+      }
+      const joinVal = opts.joinWith.value;
+      if (joinVal) {
+        lines = [lines.join(joinVal)];
+      }
+      if (opts.htmlEntities.value === 'encode') {
+        lines = lines.map(htmlEncode);
+      } else if (opts.htmlEntities.value === 'decode') {
+        lines = lines.map(htmlDecode);
+      }
+      if (opts.url.value === 'encode') {
+        lines = lines.map(l => encodeURIComponent(l));
+      } else if (opts.url.value === 'decode') {
+        lines = lines.map(l => { try { return decodeURIComponent(l); } catch { return l; } });
+      }
 
       const result = lines.join('\n');
       outputEl.value = result;
@@ -238,10 +356,20 @@
       } else {
         statusEl.textContent = '';
       }
+      if (result.length > 0) {
+        const wordCount = result.trim().split(/\s+/).filter(Boolean).length;
+        const charCount = result.length;
+        const byteCount = new TextEncoder().encode(result).length;
+        detailsEl.textContent = `${lines.length} lines · ${wordCount} words · ${charCount} chars · ${byteCount} bytes`;
+      } else {
+        detailsEl.textContent = '';
+      }
     }
 
     inputEl.addEventListener('input', process);
     Object.values(opts).forEach(el => el.addEventListener('change', process));
+    opts.splitOn.addEventListener('input', process);
+    opts.joinWith.addEventListener('input', process);
 
     btnCopy.addEventListener('click', async () => {
       try {

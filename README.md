@@ -78,30 +78,34 @@ Notes.md            This file
 - **Remove empty lines** — filters out blank lines (applied after trimming)
 - **Deduplicate lines** — removes duplicate lines, keeping first occurrence; optional case-insensitive matching
 - **Sort lines** — ascending or descending alphabetical sort; optional case-insensitive comparison
+- **Case conversion** — lowercase, uppercase, title case, or sentence case applied per line
+- **Remove accents** — strips diacritical marks, normalising to base characters (é → e, ñ → n)
+- **Remove special characters** — removes everything except letters, digits, and whitespace
+- **Split on delimiter** — splits each line on a delimiter string into multiple lines
+- **Join with separator** — joins all lines into one string using a separator
+- **HTML entities** — encode (`<` → `&lt;`, `&` → `&amp;`, etc.) or decode HTML character entities per line
+- **URL encode / decode** — encodes or decodes each line with `encodeURIComponent` / `decodeURIComponent`
+- **Output details** — live line, word, character, and byte count shown below the output
 
-Processing pipeline order: trim → remove empty → deduplicate → sort.
+Processing pipeline order: trim → remove empty → deduplicate → sort → case → remove accents → remove special characters → split → join → HTML entities → URL encode/decode.
 
 **Planned:**
 - Natural/numeric sort
-- Uppercase / lowercase / title-case conversion
 - Prefix / suffix add or remove
 - Filter lines by regex
 - Count line occurrences
-- Split lines on a delimiter; join lines with a separator
 - Remove consecutive duplicate blank lines
 - Convert tabs to spaces / spaces to tabs
-- Remove special characters
-- Remove accents
 - Remove lines containing
-- HTML character entities converter
-- Line, word, character, byte count
+- Compare input/output (no change, change)
 - Search and replace (text and Regex)
 - Remove everything before/after x (can be solved using regex search and replace)
 - Search count
-- HTML URL encode/decode (eg. %20 -> " ")
 - Padding (left or right padding with selected character)
-- Number format (e.g. from US to NO, thousand separator, desimal separator, number of desimals) 
-
+- leetspeak encode/decode
+- Number format (e.g. from US to NO, thousand separator, decimal separator, number of decimals)
+- Move rarely used features (like HTML encoding), into grouped collapsible sections
+- Reverse case
 ---
 
 ### JSON (`utility/json.html`)

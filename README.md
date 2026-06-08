@@ -12,13 +12,12 @@ Provide a fast, offline-capable toolbox for day-to-day developer text operations
 
 ```
 index.html          Landing page - card grid linking to each utility
-utility/
-  text.html         Line-based text operations
-  json.html         JSON formatting and validation
-  base64.html       Base64 encoding and decoding
-  password.html     Random password generator
-  colorpicker.html  Color picker with format conversions and tools
-  regex.html        Regex tester with match visualization and premade patterns
+text.html         Line-based text operations
+json.html         JSON formatting and validation
+base64.html       Base64 encoding and decoding
+password.html     Random password generator
+colorpicker.html  Color picker with format conversions and tools
+regex.html        Regex tester with match visualization and premade patterns
 Notes.md            This file
 ```
 
@@ -29,7 +28,7 @@ Notes.md            This file
 - **Preview flow**: All current operations are lightweight and update the output in real time as the user types or changes options.
 - **Commit flow**: Once the output looks correct, the **Commit** button replaces the input with the output, allowing operations to be chained.
 - **Copy**: A **Copy** button in the output panel writes to the clipboard.
-- **Template**: A base template for utility pages can be found at utility/page-template.html
+- **Template**: A base template for utility pages can be found at page-template.html
 
 ### Styling guidelines
 - **Theme**: VS Code-inspired. Fully self-contained - no external stylesheets or scripts.
@@ -72,7 +71,7 @@ Notes.md            This file
 
 ## Utilities
 
-### Text (`utility/text.html`)
+### Text (`text.html`)
 
 **Implemented:**
 - **Trim whitespace** — strips leading/trailing whitespace from each line
@@ -110,7 +109,7 @@ Processing pipeline order: trim → remove empty → deduplicate → sort → ca
 - Add save to local storage for input, settings, etc. 
 ---
 
-### JSON (`utility/json.html`)
+### JSON (`json.html`)
 
 **Implemented:**
 - **Format** — pretty-prints JSON with configurable indent (2 spaces, 4 spaces, tab)
@@ -129,7 +128,7 @@ Processing pipeline order: trim → remove empty → deduplicate → sort → ca
 
 ---
 
-### Base64 (`utility/base64.html`)
+### Base64 (`base64.html`)
 
 **Implemented:**
 - **Encode** — UTF-8 text → Base64
@@ -146,7 +145,7 @@ Processing pipeline order: trim → remove empty → deduplicate → sort → ca
 
 ---
 
-### Password (`utility/password.html`)
+### Password (`password.html`)
 
 **Implemented:**
 - **Cryptographically secure** — uses `crypto.getRandomValues()` with rejection sampling to eliminate modulo bias
@@ -166,7 +165,7 @@ Processing pipeline order: trim → remove empty → deduplicate → sort → ca
 
 ---
 
-### Color Picker (`utility/colorpicker.html`)
+### Color Picker (`colorpicker.html`)
 
 **Implemented:**
 - **Color swatch** — large preview that opens the native OS color picker on click
@@ -187,7 +186,7 @@ Processing pipeline order: trim → remove empty → deduplicate → sort → ca
 
 ---
 
-### Regex (`utility/regex.html`)
+### Regex (`regex.html`)
 
 **Implemented:**
 - **Pattern input** — `/pattern/flags` style input with live validation; border turns green (valid) or red (invalid) with the parser error shown inline

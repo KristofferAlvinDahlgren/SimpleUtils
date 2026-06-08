@@ -1,0 +1,768 @@
+<!DOCTYPE html>
+<html lang="en" data-theme="dark">
+<head>
+  <meta charset="UTF-8">
+  <meta name="viewport" content="width=device-width, initial-scale=1.0">
+  <title>Regex — Utils</title>
+  <script>
+    (function () {
+      const saved = localStorage.getItem('utils-theme');
+      const preferred = saved || (window.matchMedia('(prefers-color-scheme: light)').matches ? 'light' : 'dark');
+      document.documentElement.dataset.theme = preferred;
+    })();
+  </script>
+  <style>
+    *, *::before, *::after { box-sizing: border-box; margin: 0; padding: 0; }
+    :root {
+      --bg: #1e1e1e; --surface: #252526; --surface-hover: #2a2d2e;
+      --surface-deep: #222222; --input-bg: #2d2d2d;
+      --border: #3c3c3c; --accent: #0078d4; --accent-hover: #106ebe;
+      --text: #d4d4d4; --text-dim: #888;
+      --mono: 'Cascadia Code', Consolas, 'Courier New', monospace;
+      --r: 5px;
+      --success: #4ec9b0; --warn: #dcdcaa; --error: #f44747;
+      /* match highlight colours */
+      --m0: rgba(255,200,0,0.30); --m0-border: rgba(255,200,0,0.80);
+      --g1: rgba(100,180,255,0.25); --g1-border: rgba(100,180,255,0.75);
+      --g2: rgba(160,110,255,0.25); --g2-border: rgba(160,110,255,0.75);
+      --g3: rgba(90,220,140,0.25);  --g3-border: rgba(90,220,140,0.75);
+      --g4: rgba(255,130,80,0.25);  --g4-border: rgba(255,130,80,0.75);
+      --g5: rgba(255,100,160,0.25); --g5-border: rgba(255,100,160,0.75);
+    }
+    [data-theme="light"] {
+      --bg: #f8f8f8; --surface: #ffffff; --surface-hover: #f0f0f0;
+      --surface-deep: #ebebeb; --input-bg: #f5f5f5;
+      --border: #d0d0d0; --accent: #0078d4; --accent-hover: #106ebe;
+      --text: #1f1f1f; --text-dim: #767676;
+      --success: #0e7a6e; --warn: #7a6400; --error: #c72e2e;
+      --m0: rgba(220,160,0,0.20); --m0-border: rgba(180,120,0,0.80);
+      --g1: rgba(0,100,220,0.12); --g1-border: rgba(0,100,220,0.70);
+      --g2: rgba(120,60,220,0.12); --g2-border: rgba(120,60,220,0.70);
+      --g3: rgba(0,140,80,0.12);  --g3-border: rgba(0,140,80,0.70);
+      --g4: rgba(200,80,0,0.12);  --g4-border: rgba(200,80,0,0.70);
+      --g5: rgba(200,0,100,0.12); --g5-border: rgba(200,0,100,0.70);
+    }
+
+    body {
+      font-family: -apple-system, BlinkMacSystemFont, 'Segoe UI', sans-serif;
+      background: var(--bg); color: var(--text);
+      height: 100vh; display: grid; grid-template-rows: auto 1fr; overflow: hidden;
+    }
+
+    /* ── Header ─────────────────────────────────────────────────────────── */
+    header {
+      display: flex; align-items: center; gap: 16px;
+      padding: 0 20px; height: 48px; border-bottom: 1px solid var(--border);
+      flex-shrink: 0;
+    }
+    header a { color: var(--text-dim); text-decoration: none; font-size: 0.82rem; }
+    header a:hover { color: var(--text); }
+    header h1 { font-size: 1rem; font-weight: 600; }
+    .header-spacer { flex: 1; }
+    .theme-toggle {
+      display: flex; align-items: center; justify-content: center;
+      width: 30px; height: 30px; padding: 0;
+      border: 1px solid var(--border); border-radius: var(--r);
+      background: transparent; color: var(--text-dim);
+      cursor: pointer; flex-shrink: 0;
+      transition: background 0.15s, color 0.15s, border-color 0.15s;
+    }
+    .theme-toggle:hover { background: var(--surface-hover); color: var(--text); border-color: var(--accent); }
+    .theme-toggle svg { display: block; pointer-events: none; }
+
+    /* ── 3-column layout ────────────────────────────────────────────────── */
+    main {
+      display: grid; grid-template-columns: 1fr 240px 1fr;
+      min-height: 0; overflow: hidden;
+    }
+    .panel {
+      display: flex; flex-direction: column;
+      padding: 14px; gap: 10px; min-height: 0; overflow: hidden;
+      border-right: 1px solid var(--border);
+    }
+    .panel:last-child { border-right: none; }
+
+    .label {
+      font-size: 0.68rem; font-weight: 700; text-transform: uppercase;
+      letter-spacing: 0.1em; color: var(--text-dim); flex-shrink: 0;
+    }
+
+    /* ── Pattern input row ──────────────────────────────────────────────── */
+    .pattern-wrap {
+      display: flex; align-items: center; gap: 0;
+      border: 1px solid var(--border); border-radius: var(--r);
+      background: var(--surface); transition: border-color 0.15s; flex-shrink: 0;
+    }
+    .pattern-wrap:focus-within { border-color: var(--accent); }
+    .pattern-wrap.valid   { border-color: var(--success); }
+    .pattern-wrap.invalid { border-color: var(--error); }
+    .pattern-delim {
+      color: var(--text-dim); font-family: var(--mono); font-size: 1rem;
+      padding: 0 4px 0 10px; user-select: none; flex-shrink: 0;
+    }
+    .pattern-delim.close { padding: 0 4px; }
+    #pattern-input {
+      flex: 1; min-width: 0; padding: 7px 0;
+      background: transparent; border: none; outline: none;
+      color: var(--text); font-family: var(--mono); font-size: 0.88rem;
+    }
+    #flags-input {
+      width: 56px; padding: 7px 6px 7px 2px;
+      background: transparent; border: none; border-left: 1px solid var(--border);
+      outline: none; color: var(--accent); font-family: var(--mono); font-size: 0.88rem;
+    }
+
+    .status-row {
+      display: flex; align-items: center; gap: 8px;
+      min-height: 18px; flex-shrink: 0;
+    }
+    .status-badge {
+      font-size: 0.72rem; font-weight: 600; padding: 2px 7px;
+      border-radius: 3px; text-transform: uppercase; letter-spacing: 0.05em;
+    }
+    .status-badge.valid   { background: color-mix(in srgb, var(--success) 15%, transparent); color: var(--success); }
+    .status-badge.invalid { background: color-mix(in srgb, var(--error)   15%, transparent); color: var(--error); }
+    .status-badge.empty   { background: color-mix(in srgb, var(--text-dim) 10%, transparent); color: var(--text-dim); }
+    #status-msg { font-size: 0.78rem; color: var(--error); }
+
+    textarea {
+      flex: 1; min-height: 0; resize: none;
+      background: var(--surface); border: 1px solid var(--border);
+      border-radius: var(--r); color: var(--text);
+      font-family: var(--mono); font-size: 0.85rem; line-height: 1.65;
+      padding: 10px 12px; outline: none; transition: border-color 0.15s;
+    }
+    textarea:focus { border-color: var(--accent); }
+
+    /* ── Middle / options panel ─────────────────────────────────────────── */
+    .options-panel {
+      display: flex; flex-direction: column; gap: 14px;
+      padding: 14px; overflow-y: auto; min-height: 0;
+      border-right: 1px solid var(--border);
+    }
+    .opt-group { display: flex; flex-direction: column; gap: 8px; }
+    .opt-title {
+      font-size: 0.68rem; font-weight: 700; text-transform: uppercase;
+      letter-spacing: 0.1em; color: var(--text-dim);
+      border-bottom: 1px solid var(--border); padding-bottom: 5px;
+    }
+    .opt-row {
+      display: flex; align-items: center; justify-content: space-between;
+      gap: 8px; font-size: 0.83rem;
+    }
+    .opt-row label { cursor: pointer; user-select: none; }
+    input[type="checkbox"] {
+      width: 14px; height: 14px; cursor: pointer;
+      accent-color: var(--accent); flex-shrink: 0;
+    }
+
+    /* Flags checkboxes */
+    .flags-grid {
+      display: grid; grid-template-columns: 1fr 1fr; gap: 6px;
+    }
+    .flag-item {
+      display: flex; align-items: center; gap: 6px;
+      font-size: 0.82rem; cursor: pointer; user-select: none;
+    }
+    .flag-item code {
+      font-family: var(--mono); color: var(--accent); font-size: 0.8rem;
+    }
+
+    /* Premade patterns */
+    .preset-list {
+      display: flex; flex-direction: column; gap: 4px;
+    }
+    .preset-btn {
+      display: flex; align-items: center; justify-content: space-between;
+      gap: 6px; padding: 6px 9px;
+      background: var(--surface); border: 1px solid var(--border); border-radius: var(--r);
+      color: var(--text); font-size: 0.8rem; cursor: pointer; text-align: left;
+      transition: background 0.12s, border-color 0.12s;
+    }
+    .preset-btn:hover { background: var(--surface-hover); border-color: var(--accent); }
+    .preset-btn .preset-name { font-weight: 500; flex-shrink: 0; }
+    .preset-btn .preset-pattern {
+      font-family: var(--mono); font-size: 0.72rem; color: var(--text-dim);
+      overflow: hidden; text-overflow: ellipsis; white-space: nowrap;
+      direction: rtl; text-align: left;
+    }
+
+    /* ── Right / output panel ───────────────────────────────────────────── */
+    .output-panel {
+      display: flex; flex-direction: column; gap: 10px;
+      padding: 14px; min-height: 0; overflow: hidden;
+    }
+    .output-top {
+      display: flex; align-items: center; gap: 8px; flex-shrink: 0;
+    }
+    .match-count {
+      font-size: 0.78rem; color: var(--text-dim);
+    }
+    .match-count strong { color: var(--warn); }
+
+    /* Visualized text */
+    .viz-wrap {
+      flex: 1; min-height: 0; overflow-y: auto;
+      background: var(--surface); border: 1px solid var(--border);
+      border-radius: var(--r); padding: 10px 12px;
+    }
+    #viz-output {
+      font-family: var(--mono); font-size: 0.85rem; line-height: 1.75;
+      white-space: pre-wrap; word-break: break-all;
+    }
+    /* match & group highlight spans */
+    .hl-match {
+      background: var(--m0); outline: 1px solid var(--m0-border);
+      border-radius: 2px; position: relative;
+    }
+    .hl-g1 { background: var(--g1); outline: 1px solid var(--g1-border); border-radius: 2px; }
+    .hl-g2 { background: var(--g2); outline: 1px solid var(--g2-border); border-radius: 2px; }
+    .hl-g3 { background: var(--g3); outline: 1px solid var(--g3-border); border-radius: 2px; }
+    .hl-g4 { background: var(--g4); outline: 1px solid var(--g4-border); border-radius: 2px; }
+    .hl-g5 { background: var(--g5); outline: 1px solid var(--g5-border); border-radius: 2px; }
+
+    /* Match table */
+    .matches-section {
+      flex-shrink: 0; max-height: 200px; overflow-y: auto;
+      border: 1px solid var(--border); border-radius: var(--r);
+    }
+    table {
+      width: 100%; border-collapse: collapse;
+      font-size: 0.78rem; font-family: var(--mono);
+    }
+    thead th {
+      position: sticky; top: 0; z-index: 1;
+      background: var(--surface-deep); color: var(--text-dim);
+      padding: 5px 8px; font-size: 0.68rem; font-weight: 700;
+      text-transform: uppercase; letter-spacing: 0.07em;
+      border-bottom: 1px solid var(--border); text-align: left;
+    }
+    tbody tr:nth-child(even) { background: color-mix(in srgb, var(--surface) 60%, var(--bg)); }
+    tbody td { padding: 4px 8px; color: var(--text); vertical-align: top; }
+    .td-idx { color: var(--text-dim); width: 30px; }
+    .td-pos  { color: var(--text-dim); white-space: nowrap; }
+    .td-val  { word-break: break-all; }
+    .td-groups { color: var(--text-dim); word-break: break-all; }
+    .no-matches { padding: 12px; color: var(--text-dim); font-size: 0.8rem; font-style: italic; }
+
+    /* Group legend */
+    .group-legend {
+      display: flex; flex-wrap: wrap; gap: 6px; flex-shrink: 0;
+    }
+    .legend-item {
+      display: flex; align-items: center; gap: 4px;
+      font-size: 0.75rem; font-family: var(--mono);
+    }
+    .legend-swatch {
+      width: 10px; height: 10px; border-radius: 2px; flex-shrink: 0;
+    }
+
+    /* copy button */
+    .btn {
+      padding: 5px 12px; border: 1px solid var(--border); border-radius: var(--r);
+      background: var(--surface); color: var(--text); font-size: 0.8rem;
+      cursor: pointer; transition: background 0.12s, border-color 0.12s; flex-shrink: 0;
+    }
+    .btn:hover { background: var(--surface-hover); border-color: var(--accent); }
+    .btn-accent {
+      background: var(--accent); border-color: var(--accent); color: #fff;
+    }
+    .btn-accent:hover { background: var(--accent-hover); border-color: var(--accent-hover); }
+  </style>
+</head>
+<body>
+  <header>
+    <a href="../index.html">← Utils</a>
+    <h1>Regex</h1>
+    <div class="header-spacer"></div>
+    <button class="theme-toggle" id="theme-toggle" aria-label="Toggle theme" title="Toggle theme"></button>
+  </header>
+
+  <main>
+    <!-- ── Left: input ─────────────────────────────────────────────────── -->
+    <div class="panel">
+      <div class="label">Pattern</div>
+
+      <div class="pattern-wrap" id="pattern-wrap">
+        <span class="pattern-delim">/</span>
+        <input id="pattern-input" type="text" spellcheck="false" autocomplete="off"
+               placeholder="e.g. \b\w+@\w+\.\w+\b" aria-label="Regex pattern">
+        <span class="pattern-delim close">/</span>
+        <input id="flags-input" type="text" spellcheck="false" autocomplete="off"
+               maxlength="6" placeholder="gim" aria-label="Flags" title="Regex flags">
+      </div>
+
+      <div class="status-row">
+        <span class="status-badge empty" id="status-badge">—</span>
+        <span id="status-msg"></span>
+      </div>
+
+      <div class="label" style="margin-top:4px">Test Text</div>
+      <textarea id="test-input" spellcheck="false" placeholder="Paste or type text to test against…"></textarea>
+    </div>
+
+    <!-- ── Middle: options ─────────────────────────────────────────────── -->
+    <div class="options-panel">
+
+      <div class="opt-group">
+        <div class="opt-title">Flags</div>
+        <div class="flags-grid">
+          <label class="flag-item"><input type="checkbox" id="flag-g" checked> <code>g</code> global</label>
+          <label class="flag-item"><input type="checkbox" id="flag-i"> <code>i</code> ignore case</label>
+          <label class="flag-item"><input type="checkbox" id="flag-m"> <code>m</code> multiline</label>
+          <label class="flag-item"><input type="checkbox" id="flag-s"> <code>s</code> dotAll</label>
+          <label class="flag-item"><input type="checkbox" id="flag-u"> <code>u</code> unicode</label>
+          <label class="flag-item"><input type="checkbox" id="flag-d"> <code>d</code> indices</label>
+        </div>
+      </div>
+
+      <div class="opt-group">
+        <div class="opt-title">Display</div>
+        <div class="opt-row">
+          <label for="show-groups">Highlight groups</label>
+          <input type="checkbox" id="show-groups" checked>
+        </div>
+        <div class="opt-row">
+          <label for="show-table">Match table</label>
+          <input type="checkbox" id="show-table" checked>
+        </div>
+      </div>
+
+      <div class="opt-group">
+        <div class="opt-title">Presets</div>
+        <div class="preset-list" id="preset-list"></div>
+      </div>
+
+    </div>
+
+    <!-- ── Right: output ───────────────────────────────────────────────── -->
+    <div class="output-panel">
+      <div class="output-top">
+        <div class="label" style="margin:0">Matches</div>
+        <span class="match-count" id="match-count"></span>
+        <div style="flex:1"></div>
+        <button class="btn" id="copy-btn">Copy matches</button>
+      </div>
+
+      <div class="group-legend" id="group-legend" style="display:none"></div>
+
+      <div class="viz-wrap">
+        <div id="viz-output"></div>
+      </div>
+
+      <div class="matches-section" id="matches-section" style="display:none">
+        <table>
+          <thead>
+            <tr>
+              <th class="td-idx">#</th>
+              <th>Match</th>
+              <th>Position</th>
+              <th id="groups-header" style="display:none">Groups</th>
+            </tr>
+          </thead>
+          <tbody id="matches-tbody"></tbody>
+        </table>
+      </div>
+    </div>
+  </main>
+
+  <script>
+    /* ── Premade patterns ─────────────────────────────────────────────────── */
+    const PRESETS = [
+      { name: 'Email',           flags: 'gi', pattern: String.raw`[a-zA-Z0-9._%+\-]+@[a-zA-Z0-9.\-]+\.[a-zA-Z]{2,}` },
+      { name: 'URL',             flags: 'gi', pattern: String.raw`https?:\/\/(?:www\.)?[-a-zA-Z0-9@:%._+~#=]{1,256}\.[a-zA-Z]{2,6}\b(?:[-a-zA-Z0-9@:%_+.~#?&\/=]*)` },
+      { name: 'IPv4',            flags: 'g',  pattern: String.raw`\b(?:(?:25[0-5]|2[0-4]\d|[01]?\d\d?)\.){3}(?:25[0-5]|2[0-4]\d|[01]?\d\d?)\b` },
+      { name: 'IPv6',            flags: 'gi', pattern: String.raw`(?:[0-9a-fA-F]{1,4}:){7}[0-9a-fA-F]{1,4}` },
+      { name: 'Date (YYYY-MM-DD)',flags: 'g', pattern: String.raw`\b(\d{4})[-/](\d{2})[-/](\d{2})\b` },
+      { name: 'Date (DD/MM/YYYY)',flags: 'g', pattern: String.raw`\b(\d{2})[\/\-.](\d{2})[\/\-.](\d{4})\b` },
+      { name: 'Time (HH:MM:SS)', flags: 'g',  pattern: String.raw`\b([01]?\d|2[0-3]):([0-5]\d)(?::([0-5]\d))?\b` },
+      { name: 'Phone (E.164)',   flags: 'g',  pattern: String.raw`\+?[1-9]\d{1,14}` },
+      { name: 'Hex color',       flags: 'gi', pattern: String.raw`#(?:[0-9a-fA-F]{3,4}|[0-9a-fA-F]{6}|[0-9a-fA-F]{8})\b` },
+      { name: 'UUID',            flags: 'gi', pattern: String.raw`[0-9a-f]{8}-[0-9a-f]{4}-[1-5][0-9a-f]{3}-[89ab][0-9a-f]{3}-[0-9a-f]{12}` },
+      { name: 'Credit card',     flags: 'g',  pattern: String.raw`\b(?:4[0-9]{12}(?:[0-9]{3})?|5[1-5][0-9]{14}|3[47][0-9]{13}|6(?:011|5[0-9]{2})[0-9]{12})\b` },
+      { name: 'Semver',          flags: 'g',  pattern: String.raw`\bv?(\d+)\.(\d+)\.(\d+)(?:-([0-9A-Za-z.-]+))?(?:\+([0-9A-Za-z.-]+))?\b` },
+      { name: 'JWT',             flags: 'g',  pattern: String.raw`[A-Za-z0-9_-]{2,}(?:\.[A-Za-z0-9_-]{2,}){2}` },
+      { name: 'Hashtag',         flags: 'gi', pattern: String.raw`#[A-Za-z]\w*` },
+      { name: 'Mention (@user)', flags: 'gi', pattern: String.raw`@[A-Za-z0-9_]{1,50}` },
+      { name: 'Integer',         flags: 'g',  pattern: String.raw`-?\b\d+\b` },
+      { name: 'Decimal number',  flags: 'g',  pattern: String.raw`-?\b\d+(?:\.\d+)?\b` },
+      { name: 'Whitespace runs', flags: 'g',  pattern: String.raw`\s{2,}` },
+      { name: 'Empty lines',     flags: 'gm', pattern: String.raw`^[ \t]*$` },
+      { name: 'HTML tag',        flags: 'gi', pattern: String.raw`<\/?[a-z][a-z0-9]*(?:\s+[^>]*)?>` },
+      { name: 'CSS class',       flags: 'g',  pattern: String.raw`\.[a-zA-Z_-][a-zA-Z0-9_-]*` },
+      { name: 'Markdown heading',flags: 'gm', pattern: String.raw`^#{1,6}\s+.+$` },
+      { name: 'Markdown link',   flags: 'g',  pattern: String.raw`\[([^\]]+)\]\(([^)]+)\)` },
+      { name: 'File path (Unix)',flags: 'g',  pattern: String.raw`(?:\/[^\/ ]+)+\/?` },
+      { name: 'File path (Win)', flags: 'g',  pattern: String.raw`[A-Za-z]:\\(?:[^\\\/:*?"<>|\r\n]+\\)*[^\\\/:*?"<>|\r\n]*` },
+    ];
+
+    const GROUP_CLASSES = ['hl-g1','hl-g2','hl-g3','hl-g4','hl-g5'];
+    const GROUP_COLORS  = ['var(--g1-border)','var(--g2-border)','var(--g3-border)','var(--g4-border)','var(--g5-border)'];
+
+    /* ── DOM refs ─────────────────────────────────────────────────────────── */
+    const patternInput  = document.getElementById('pattern-input');
+    const flagsInput    = document.getElementById('flags-input');
+    const patternWrap   = document.getElementById('pattern-wrap');
+    const statusBadge   = document.getElementById('status-badge');
+    const statusMsg     = document.getElementById('status-msg');
+    const testInput     = document.getElementById('test-input');
+    const vizOutput     = document.getElementById('viz-output');
+    const matchCount    = document.getElementById('match-count');
+    const matchesTbody  = document.getElementById('matches-tbody');
+    const matchesSection= document.getElementById('matches-section');
+    const groupLegend   = document.getElementById('group-legend');
+    const groupsHeader  = document.getElementById('groups-header');
+    const copyBtn       = document.getElementById('copy-btn');
+    const showGroupsCb  = document.getElementById('show-groups');
+    const showTableCb   = document.getElementById('show-table');
+    const flagG = document.getElementById('flag-g');
+    const flagI = document.getElementById('flag-i');
+    const flagM = document.getElementById('flag-m');
+    const flagS = document.getElementById('flag-s');
+    const flagU = document.getElementById('flag-u');
+    const flagD = document.getElementById('flag-d');
+
+    /* ── Build preset list ────────────────────────────────────────────────── */
+    const presetList = document.getElementById('preset-list');
+    PRESETS.forEach(p => {
+      const btn = document.createElement('button');
+      btn.className = 'preset-btn';
+      btn.innerHTML = `<span class="preset-name">${p.name}</span><span class="preset-pattern">${escHtml(p.pattern)}</span>`;
+      btn.addEventListener('click', () => {
+        patternInput.value = p.pattern;
+        // Apply preset flags to checkboxes
+        flagG.checked = p.flags.includes('g');
+        flagI.checked = p.flags.includes('i');
+        flagM.checked = p.flags.includes('m');
+        flagS.checked = p.flags.includes('s');
+        flagU.checked = p.flags.includes('u');
+        flagD.checked = p.flags.includes('d');
+        syncFlagsInput();
+        run();
+      });
+      presetList.appendChild(btn);
+    });
+
+    /* ── Flag checkboxes ↔ flags text field ──────────────────────────────── */
+    function syncFlagsInput() {
+      let f = '';
+      if (flagG.checked) f += 'g';
+      if (flagI.checked) f += 'i';
+      if (flagM.checked) f += 'm';
+      if (flagS.checked) f += 's';
+      if (flagU.checked) f += 'u';
+      if (flagD.checked) f += 'd';
+      flagsInput.value = f;
+    }
+
+    function syncCheckboxes() {
+      const f = flagsInput.value;
+      flagG.checked = f.includes('g');
+      flagI.checked = f.includes('i');
+      flagM.checked = f.includes('m');
+      flagS.checked = f.includes('s');
+      flagU.checked = f.includes('u');
+      flagD.checked = f.includes('d');
+    }
+
+    [flagG, flagI, flagM, flagS, flagU, flagD].forEach(cb => {
+      cb.addEventListener('change', () => { syncFlagsInput(); run(); });
+    });
+    flagsInput.addEventListener('input', () => { syncCheckboxes(); run(); });
+    // init flags field
+    syncFlagsInput();
+
+    /* ── Core run ─────────────────────────────────────────────────────────── */
+    let lastMatches = [];
+
+    function run() {
+      const pattern = patternInput.value;
+      const text    = testInput.value;
+      const flags   = flagsInput.value.replace(/[^gimsud]/g, '');
+
+      // empty pattern
+      if (!pattern) {
+        setStatus('empty', '', '');
+        renderViz(text, [], false);
+        setMatchCount(null);
+        renderTable([]);
+        return;
+      }
+
+      // validate
+      let re;
+      try {
+        re = new RegExp(pattern, flags);
+      } catch (e) {
+        setStatus('invalid', 'Invalid', e.message);
+        renderViz(text, [], false);
+        setMatchCount(null);
+        renderTable([]);
+        return;
+      }
+
+      setStatus('valid', 'Valid', '');
+
+      // collect matches
+      const matches = [];
+      if (flags.includes('g')) {
+        let m;
+        // reset lastIndex to be safe
+        re.lastIndex = 0;
+        while ((m = re.exec(text)) !== null) {
+          matches.push(m);
+          // guard against zero-width infinite loops
+          if (m.index === re.lastIndex) re.lastIndex++;
+        }
+      } else {
+        const m = re.exec(text);
+        if (m) matches.push(m);
+      }
+
+      lastMatches = matches;
+      setMatchCount(matches.length);
+      renderViz(text, matches, showGroupsCb.checked);
+      renderTable(matches);
+    }
+
+    /* ── Status helpers ───────────────────────────────────────────────────── */
+    function setStatus(state, label, msg) {
+      patternWrap.className = 'pattern-wrap' + (state === 'valid' ? ' valid' : state === 'invalid' ? ' invalid' : '');
+      statusBadge.className = 'status-badge ' + state;
+      statusBadge.textContent = label || '—';
+      statusMsg.textContent = msg;
+    }
+
+    function setMatchCount(n) {
+      if (n === null) { matchCount.innerHTML = ''; return; }
+      matchCount.innerHTML = n === 0
+        ? '<span style="color:var(--text-dim)">0 matches</span>'
+        : `<strong>${n}</strong> match${n === 1 ? '' : 'es'}`;
+    }
+
+    /* ── Visualization renderer ───────────────────────────────────────────── */
+    function renderViz(text, matches, highlightGroups) {
+      if (!text) { vizOutput.textContent = ''; return; }
+      if (!matches.length) { vizOutput.textContent = text; return; }
+
+      // We build a list of annotated regions, then render as HTML.
+      // Each character position can have: match wrapper, group wrappers (nested).
+      // Strategy: build array of {start, end, type, groupIndex} spans, sort by start,
+      // then walk the text inserting HTML tags.
+
+      const spans = [];
+      matches.forEach((m, mi) => {
+        spans.push({ start: m.index, end: m.index + m[0].length, type: 'match', mi });
+        if (highlightGroups) {
+          for (let gi = 1; gi < m.length; gi++) {
+            if (m[gi] === undefined) continue;
+            // find position using indices if available (flag d), else search
+            let gStart, gEnd;
+            if (m.indices && m.indices[gi]) {
+              [gStart, gEnd] = m.indices[gi];
+            } else {
+              // approximate: search within match for the group string
+              const groupStr = m[gi];
+              const matchStr = m[0];
+              const offset = matchStr.indexOf(groupStr);
+              gStart = offset >= 0 ? m.index + offset : -1;
+              gEnd   = gStart >= 0 ? gStart + groupStr.length : -1;
+            }
+            if (gStart >= 0) {
+              spans.push({ start: gStart, end: gEnd, type: 'group', gi });
+            }
+          }
+        }
+      });
+
+      vizOutput.innerHTML = buildHighlightedHtml(text, spans, highlightGroups, matches);
+      renderGroupLegend(matches, highlightGroups);
+    }
+
+    function buildHighlightedHtml(text, spans, highlightGroups, matches) {
+      // Simple linear pass: for each match, wrap match span then inner groups.
+      // Process match by match to avoid complex nesting.
+      let result = '';
+      let pos = 0;
+
+      matches.forEach((m) => {
+        const mStart = m.index;
+        const mEnd   = m.index + m[0].length;
+
+        // text before this match
+        if (pos < mStart) result += escHtml(text.slice(pos, mStart));
+
+        // build inner content of match (with group highlights)
+        let inner = '';
+        if (highlightGroups && m.length > 1) {
+          inner = buildGroupsHtml(text, m, mStart, mEnd);
+        } else {
+          inner = escHtml(m[0]);
+        }
+
+        result += `<span class="hl-match">${inner}</span>`;
+        pos = mEnd;
+      });
+
+      // remaining text after last match
+      if (pos < text.length) result += escHtml(text.slice(pos));
+      return result;
+    }
+
+    function buildGroupsHtml(text, m, mStart, mEnd) {
+      // Build segments within the match for each capture group.
+      // Group positions: use indices if available, else approximate.
+      const groupSegs = [];
+      for (let gi = 1; gi < m.length; gi++) {
+        if (m[gi] === undefined || m[gi] === null) continue;
+        let gStart, gEnd;
+        if (m.indices && m.indices[gi]) {
+          [gStart, gEnd] = m.indices[gi];
+        } else {
+          const groupStr = m[gi];
+          const matchStr = m[0];
+          const offset = matchStr.indexOf(groupStr);
+          gStart = offset >= 0 ? m.index + offset : -1;
+          gEnd   = gStart >= 0 ? gStart + groupStr.length : -1;
+        }
+        if (gStart >= 0 && gStart >= mStart && gEnd <= mEnd) {
+          groupSegs.push({ start: gStart, end: gEnd, gi });
+        }
+      }
+
+      if (!groupSegs.length) return escHtml(m[0]);
+
+      // sort by start, take first non-overlapping per position
+      groupSegs.sort((a, b) => a.start - b.start);
+      // remove overlapping: simple greedy
+      const kept = [];
+      let cursor = mStart;
+      for (const seg of groupSegs) {
+        if (seg.start >= cursor) { kept.push(seg); cursor = seg.end; }
+      }
+
+      let html = '';
+      let p = mStart;
+      for (const seg of kept) {
+        if (p < seg.start) html += escHtml(text.slice(p, seg.start));
+        const cls = GROUP_CLASSES[(seg.gi - 1) % GROUP_CLASSES.length];
+        html += `<span class="${cls}">${escHtml(text.slice(seg.start, seg.end))}</span>`;
+        p = seg.end;
+      }
+      if (p < mEnd) html += escHtml(text.slice(p, mEnd));
+      return html;
+    }
+
+    /* ── Group legend ─────────────────────────────────────────────────────── */
+    function renderGroupLegend(matches, highlightGroups) {
+      if (!highlightGroups || !matches.length) {
+        groupLegend.style.display = 'none';
+        return;
+      }
+      // Determine max groups across all matches
+      const maxGroups = Math.max(...matches.map(m => m.length - 1));
+      if (maxGroups === 0) { groupLegend.style.display = 'none'; return; }
+
+      groupLegend.innerHTML = '';
+      const matchDot = document.createElement('div');
+      matchDot.className = 'legend-item';
+      matchDot.innerHTML = `<span class="legend-swatch" style="background:var(--m0);outline:1px solid var(--m0-border)"></span> full match`;
+      groupLegend.appendChild(matchDot);
+
+      for (let gi = 1; gi <= Math.min(maxGroups, GROUP_CLASSES.length); gi++) {
+        const item = document.createElement('div');
+        item.className = 'legend-item';
+        item.innerHTML = `<span class="legend-swatch" style="background:${GROUP_COLORS[gi-1]};opacity:.7"></span> group ${gi}`;
+        groupLegend.appendChild(item);
+      }
+      groupLegend.style.display = 'flex';
+    }
+
+    /* ── Match table ──────────────────────────────────────────────────────── */
+    function renderTable(matches) {
+      const showTable = showTableCb.checked;
+      if (!showTable || !matches.length) {
+        matchesSection.style.display = 'none';
+        return;
+      }
+
+      matchesSection.style.display = '';
+      const hasGroups = matches.some(m => m.length > 1);
+      groupsHeader.style.display = hasGroups ? '' : 'none';
+
+      matchesTbody.innerHTML = '';
+      matches.forEach((m, i) => {
+        const tr = document.createElement('tr');
+        const groups = [];
+        for (let gi = 1; gi < m.length; gi++) {
+          groups.push(m[gi] !== undefined ? escHtml(m[gi]) : '<em style="color:var(--text-dim)">undefined</em>');
+        }
+        tr.innerHTML = `
+          <td class="td-idx">${i + 1}</td>
+          <td class="td-val">${escHtml(m[0])}</td>
+          <td class="td-pos">${m.index}–${m.index + m[0].length}</td>
+          ${hasGroups ? `<td class="td-groups">${groups.join(', ')}</td>` : ''}
+        `;
+        matchesTbody.appendChild(tr);
+      });
+    }
+
+    /* ── Copy matches ─────────────────────────────────────────────────────── */
+    copyBtn.addEventListener('click', () => {
+      if (!lastMatches.length) return;
+      const text = lastMatches.map(m => m[0]).join('\n');
+      navigator.clipboard.writeText(text).then(() => {
+        const orig = copyBtn.textContent;
+        copyBtn.textContent = 'Copied!';
+        setTimeout(() => { copyBtn.textContent = orig; }, 1400);
+      });
+    });
+
+    /* ── Wire up inputs ───────────────────────────────────────────────────── */
+    patternInput.addEventListener('input', run);
+    testInput.addEventListener('input', run);
+    showGroupsCb.addEventListener('change', run);
+    showTableCb.addEventListener('change', () => renderTable(lastMatches));
+
+    /* ── Utility ──────────────────────────────────────────────────────────── */
+    function escHtml(str) {
+      if (str === undefined || str === null) return '';
+      return String(str)
+        .replace(/&/g, '&amp;')
+        .replace(/</g, '&lt;')
+        .replace(/>/g, '&gt;')
+        .replace(/"/g, '&quot;');
+    }
+
+    /* ── Theme toggle ─────────────────────────────────────────────────────── */
+    const SUN_SVG = `<svg width="15" height="15" viewBox="0 0 24 24" fill="none"
+        stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round">
+      <circle cx="12" cy="12" r="5"/>
+      <line x1="12" y1="1"  x2="12" y2="3"/>  <line x1="12" y1="21" x2="12" y2="23"/>
+      <line x1="4.22"  y1="4.22"  x2="5.64"  y2="5.64"/>
+      <line x1="18.36" y1="18.36" x2="19.78" y2="19.78"/>
+      <line x1="1"  y1="12" x2="3"  y2="12"/>  <line x1="21" y1="12" x2="23" y2="12"/>
+      <line x1="4.22"  y1="19.78" x2="5.64"  y2="18.36"/>
+      <line x1="18.36" y1="5.64"  x2="19.78" y2="4.22"/>
+    </svg>`;
+    const MOON_SVG = `<svg width="15" height="15" viewBox="0 0 24 24" fill="none"
+        stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round">
+      <path d="M21 12.79A9 9 0 1 1 11.21 3 7 7 0 0 0 21 12.79z"/>
+    </svg>`;
+
+    const toggleBtn = document.getElementById('theme-toggle');
+    function applyTheme(theme) {
+      document.documentElement.dataset.theme = theme;
+      localStorage.setItem('utils-theme', theme);
+      const isDark = theme === 'dark';
+      toggleBtn.innerHTML = isDark ? SUN_SVG : MOON_SVG;
+      toggleBtn.setAttribute('aria-label', isDark ? 'Switch to light mode' : 'Switch to dark mode');
+      toggleBtn.setAttribute('title',      isDark ? 'Switch to light mode' : 'Switch to dark mode');
+    }
+    toggleBtn.addEventListener('click', () => {
+      applyTheme(document.documentElement.dataset.theme === 'dark' ? 'light' : 'dark');
+    });
+    applyTheme(document.documentElement.dataset.theme);
+  </script>
+</body>
+</html>

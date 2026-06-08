@@ -18,6 +18,7 @@ utility/
   base64.html       Base64 encoding and decoding
   password.html     Random password generator
   colorpicker.html  Color picker with format conversions and tools
+  regex.html        Regex tester with match visualization and premade patterns
 Notes.md            This file
 ```
 
@@ -96,16 +97,17 @@ Processing pipeline order: trim → remove empty → deduplicate → sort → ca
 - Count line occurrences
 - Remove consecutive duplicate blank lines
 - Convert tabs to spaces / spaces to tabs
-- Remove lines containing
+- Remove any lines (not) containing / matching regex
 - Compare input/output (no change, change)
 - Search and replace (text and Regex)
 - Remove everything before/after x (can be solved using regex search and replace)
 - Search count
 - Padding (left or right padding with selected character)
-- leetspeak encode/decode
 - Number format (e.g. from US to NO, thousand separator, decimal separator, number of decimals)
 - Move rarely used features (like HTML encoding), into grouped collapsible sections
 - Reverse case
+- Change order of operations so that split line can be used with sort and unique lines before joining at the end
+- Add save to local storage for input, settings, etc. 
 ---
 
 ### JSON (`utility/json.html`)
@@ -185,9 +187,28 @@ Processing pipeline order: trim → remove empty → deduplicate → sort → ca
 
 ---
 
+### Regex (`utility/regex.html`)
+
+**Implemented:**
+- **Pattern input** — `/pattern/flags` style input with live validation; border turns green (valid) or red (invalid) with the parser error shown inline
+- **Flags** — checkboxes for `g`, `i`, `m`, `s`, `u`, `d`; stay in sync with a freeform flags text field
+- **Visual match highlighting** — full match highlighted in yellow; up to 5 capture groups each tinted a distinct color with an auto-generated legend
+- **Match table** — scrollable table listing every match, its character position range, and capture group values; toggleable
+- **Match count** — live summary of the number of matches found
+- **Copy matches** — copies all matched strings (one per line) to the clipboard
+- **25 premade patterns** — Email, URL, IPv4, IPv6, Date (ISO and DMY), Time, Phone, Hex color, UUID, Credit card, Semver, JWT, Hashtag, Mention, Integer, Decimal, Whitespace runs, Empty lines, HTML tag, CSS class, Markdown heading, Markdown link, Unix path, Windows path
+
+**Planned:**
+- Named capture group support in the legend and table
+- Replace mode (substitute matches with a replacement string)
+- Regex explanation / plain-English breakdown
+- Match count per line
+- Export matches as CSV or plain text
+
+---
+
 ## Planned utilities
 - XML
-- Regex
 - URL, email, phone (validator, formatter and sorter)
 - Templater (Apply a template to a given dataset (simple: replace keyword in a text with attributes form input. advanced: create tables from a large dataset))
 - Table (create a dynamic table with sortable columns and search filters based on a json input)

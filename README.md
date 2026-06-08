@@ -2,22 +2,24 @@
 
 A self-hosted collection of browser-based utilities for common text and data tasks. No backend, no build step, just pure HTML/CSS/JS.
 
+[GitHub](https://github.com/KristofferAlvinDahlgren/SimpleUtils) · [Live preview](https://kristofferalvindahlgren.github.io/SimpleUtils/index.html)
+
 
 ## Intent
 
-Provide a fast, offline-capable toolbox for day-to-day developer text operations. All processing runs in the browser; nothing is sent to a server.
+Provide a fast, offline-capable toolbox for day-to-day developer text operations. All processing runs in the browser; nothing is sent to a server. All you have to do is to download the HTML files and open them locally.
 
 
 ## Structure
 
 ```
 index.html          Landing page - card grid linking to each utility
-text.html         Line-based text operations
-json.html         JSON formatting and validation
-base64.html       Base64 encoding and decoding
-password.html     Random password generator
-colorpicker.html  Color picker with format conversions and tools
-regex.html        Regex tester with match visualization and premade patterns
+text.html           Line-based text operations
+json.html           JSON formatting and validation
+base64.html         Base64 encoding and decoding
+password.html       Random password generator
+colorpicker.html    Color picker with format conversions and tools
+regex.html          Regex tester with match visualization and premade patterns
 Notes.md            This file
 ```
 

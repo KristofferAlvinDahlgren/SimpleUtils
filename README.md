@@ -20,6 +20,7 @@ base64.html         Base64 encoding and decoding
 password.html       Random password generator
 colorpicker.html    Color picker with format conversions and tools
 regex.html          Regex tester with match visualization and premade patterns
+permissions.html    Linux file permission builder and decoder
 Notes.md            This file
 ```
 
@@ -208,11 +209,36 @@ Processing pipeline order: trim → remove empty → deduplicate → sort → ca
 
 ---
 
+### File Permissions (`permissions.html`)
+
+**Implemented:**
+- **Interactive permission grid** — 3×3 toggle buttons (Owner/Group/Other × Read/Write/Execute); click to toggle individual bits
+- **Special bits** — Setuid (4000), Setgid (2000), Sticky (1000) checkboxes; reflected in the execute column as `s`/`S`/`t`/`T`
+- **File type selector** — Regular file, Directory, Symlink, Named pipe, Char device, Block device, Socket
+- **Octal input** — type a 3- or 4-digit octal value (e.g. `755`, `2755`) to set the grid
+- **Symbolic input** — type a 9- or 10-char symbolic string (e.g. `rwxr-xr-x`, `-rwxr-xr-x`) to set the grid
+- **All inputs stay in sync** — grid, octal field, and symbolic field update each other live
+- **Colorised display** — large permission string with owner bits in blue, group in teal, other in yellow; inactive bits faded
+- **chmod (numeric)** — e.g. `chmod 755 <file>`
+- **chmod (symbolic/absolute)** — e.g. `chmod u=rwx,g=rx,o=rx <file>`
+- **Copy buttons** on every output row
+- **Access summary table** — shows read/write/execute and active special bits per entity
+- **20 presets** in four categories: Files, Executables, Directories, Security
+
+**Planned:**
+- Umask calculator (derive permissions from a given umask)
+- `find` command snippet (`find . -perm 755`)
+- `install` command snippet
+- Explain mode (plain-English description of what the permissions mean)
+
+---
+
 ## Planned utilities
 - XML
 - URL, email, phone (validator, formatter and sorter)
 - Templater (Apply a template to a given dataset (simple: replace keyword in a text with attributes form input. advanced: create tables from a large dataset))
 - Table (create a dynamic table with sortable columns and search filters based on a json input)
+- Cron (validation, explanation, etc. multiple tasks)
 
 ---
 

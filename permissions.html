@@ -1,0 +1,703 @@
+<!DOCTYPE html>
+<html lang="en" data-theme="dark">
+<head>
+  <meta charset="UTF-8">
+  <meta name="viewport" content="width=device-width, initial-scale=1.0">
+  <title>File Permissions — Utils</title>
+  <script>
+    (function () {
+      const saved = localStorage.getItem('utils-theme');
+      const preferred = saved || (window.matchMedia('(prefers-color-scheme: light)').matches ? 'light' : 'dark');
+      document.documentElement.dataset.theme = preferred;
+    })();
+  </script>
+  <style>
+    *, *::before, *::after { box-sizing: border-box; margin: 0; padding: 0; }
+    :root {
+      --bg: #1e1e1e; --surface: #252526; --surface-hover: #2a2d2e;
+      --surface-deep: #222222; --input-bg: #2d2d2d;
+      --border: #3c3c3c; --accent: #0078d4; --accent-hover: #106ebe;
+      --text: #d4d4d4; --text-dim: #888;
+      --mono: 'Cascadia Code', Consolas, 'Courier New', monospace;
+      --r: 5px;
+      --success: #4ec9b0; --warn: #dcdcaa; --error: #f44747;
+    }
+    [data-theme="light"] {
+      --bg: #f8f8f8; --surface: #ffffff; --surface-hover: #f0f0f0;
+      --surface-deep: #ebebeb; --input-bg: #f5f5f5;
+      --border: #d0d0d0; --accent: #0078d4; --accent-hover: #106ebe;
+      --text: #1f1f1f; --text-dim: #767676;
+      --success: #0e7a6e; --warn: #7a6400; --error: #c72e2e;
+    }
+
+    body {
+      font-family: -apple-system, BlinkMacSystemFont, 'Segoe UI', sans-serif;
+      background: var(--bg); color: var(--text);
+      height: 100vh; display: grid; grid-template-rows: auto 1fr; overflow: hidden;
+    }
+
+    /* ── Header ─────────────────────────────────────────────────────────── */
+    header {
+      display: flex; align-items: center; gap: 16px;
+      padding: 0 20px; height: 48px; border-bottom: 1px solid var(--border);
+      flex-shrink: 0;
+    }
+    header a { color: var(--text-dim); text-decoration: none; font-size: 0.82rem; }
+    header a:hover { color: var(--text); }
+    header h1 { font-size: 1rem; font-weight: 600; }
+    .header-spacer { flex: 1; }
+    .theme-toggle {
+      display: flex; align-items: center; justify-content: center;
+      width: 30px; height: 30px; padding: 0;
+      border: 1px solid var(--border); border-radius: var(--r);
+      background: transparent; color: var(--text-dim);
+      cursor: pointer; flex-shrink: 0;
+      transition: background 0.15s, color 0.15s, border-color 0.15s;
+    }
+    .theme-toggle:hover { background: var(--surface-hover); color: var(--text); border-color: var(--accent); }
+    .theme-toggle svg { display: block; pointer-events: none; }
+
+    /* ── 3-column layout ────────────────────────────────────────────────── */
+    main {
+      display: grid; grid-template-columns: 1fr 220px 1fr;
+      min-height: 0; overflow: hidden;
+    }
+    .panel {
+      display: flex; flex-direction: column;
+      padding: 14px; gap: 10px; min-height: 0; overflow-y: auto;
+      border-right: 1px solid var(--border);
+    }
+    .options-panel {
+      display: flex; flex-direction: column; gap: 14px;
+      padding: 14px; overflow-y: auto; min-height: 0;
+      border-right: 1px solid var(--border);
+    }
+    .output-panel {
+      display: flex; flex-direction: column;
+      padding: 14px; gap: 10px; min-height: 0; overflow: hidden;
+    }
+
+    .label {
+      font-size: 0.68rem; font-weight: 700; text-transform: uppercase;
+      letter-spacing: 0.1em; color: var(--text-dim); flex-shrink: 0;
+    }
+
+    /* ── Permission grid ─────────────────────────────────────────────────── */
+    .perm-grid {
+      display: grid;
+      grid-template-columns: 52px repeat(3, 1fr);
+      gap: 5px; flex-shrink: 0;
+    }
+    .pg-spacer { /* top-left empty */ }
+    .pg-col-hdr {
+      text-align: center; font-size: 0.68rem; font-weight: 700;
+      text-transform: uppercase; letter-spacing: 0.08em;
+      color: var(--text-dim); padding: 2px 0;
+    }
+    .pg-row-hdr {
+      display: flex; align-items: center;
+      font-size: 0.78rem; color: var(--text-dim);
+    }
+    .perm-btn {
+      display: flex; align-items: center; justify-content: center;
+      height: 48px;
+      border: 1px solid var(--border); border-radius: var(--r);
+      background: var(--surface);
+      font-family: var(--mono); font-size: 1.1rem; font-weight: 700;
+      color: var(--text-dim); cursor: pointer; user-select: none;
+      transition: background 0.12s, border-color 0.12s, color 0.12s;
+    }
+    .perm-btn:hover { background: var(--surface-hover); border-color: var(--accent); }
+    .perm-btn.on {
+      background: color-mix(in srgb, var(--accent) 16%, var(--surface));
+      border-color: var(--accent); color: var(--accent);
+    }
+    .perm-btn.on:hover { background: color-mix(in srgb, var(--accent) 24%, var(--surface)); }
+
+    /* ── Text input pair ─────────────────────────────────────────────────── */
+    .input-pair { display: grid; grid-template-columns: 1fr 1fr; gap: 8px; flex-shrink: 0; }
+    .input-group { display: flex; flex-direction: column; gap: 5px; }
+    input[type="text"] {
+      background: var(--input-bg); border: 1px solid var(--border); border-radius: var(--r);
+      color: var(--text); font-family: var(--mono); font-size: 0.88rem;
+      padding: 6px 9px; outline: none; transition: border-color 0.15s; width: 100%;
+    }
+    input[type="text"]:focus { border-color: var(--accent); }
+    input[type="text"].invalid { border-color: var(--error); }
+
+    /* ── Options ─────────────────────────────────────────────────────────── */
+    .opt-group { display: flex; flex-direction: column; gap: 8px; }
+    .opt-title {
+      font-size: 0.68rem; font-weight: 700; text-transform: uppercase;
+      letter-spacing: 0.1em; color: var(--text-dim);
+      border-bottom: 1px solid var(--border); padding-bottom: 5px;
+    }
+    .opt-row {
+      display: flex; align-items: center; justify-content: space-between;
+      gap: 8px; font-size: 0.83rem;
+    }
+    .opt-row label { cursor: pointer; user-select: none; }
+    input[type="checkbox"] {
+      width: 14px; height: 14px; cursor: pointer;
+      accent-color: var(--accent); flex-shrink: 0;
+    }
+    select {
+      background: var(--input-bg); border: 1px solid var(--border); border-radius: var(--r);
+      color: var(--text); padding: 5px 7px; font-size: 0.82rem;
+      font-family: var(--mono); outline: none; cursor: pointer; width: 100%;
+    }
+    select:focus { border-color: var(--accent); }
+
+    /* Presets */
+    .preset-group-title {
+      font-size: 0.65rem; font-weight: 700; text-transform: uppercase;
+      letter-spacing: 0.08em; color: var(--text-dim); margin-top: 2px;
+    }
+    .preset-btn {
+      display: flex; align-items: center; gap: 8px;
+      padding: 5px 8px;
+      background: var(--surface); border: 1px solid var(--border); border-radius: var(--r);
+      color: var(--text); font-size: 0.78rem; cursor: pointer; text-align: left;
+      transition: background 0.12s, border-color 0.12s; width: 100%;
+    }
+    .preset-btn:hover { background: var(--surface-hover); border-color: var(--accent); }
+    .preset-oct { font-family: var(--mono); color: var(--accent); font-size: 0.75rem; flex-shrink: 0; min-width: 30px; }
+    .preset-name { color: var(--text-dim); font-size: 0.75rem; overflow: hidden; text-overflow: ellipsis; white-space: nowrap; }
+
+    /* ── Output panel ────────────────────────────────────────────────────── */
+    .perm-display {
+      font-family: var(--mono); font-size: 2rem; font-weight: 600; letter-spacing: 0.06em;
+      padding: 14px 16px;
+      background: var(--surface); border: 1px solid var(--border); border-radius: var(--r);
+      text-align: center; flex-shrink: 0; cursor: default; user-select: all;
+    }
+
+    .out-rows { display: flex; flex-direction: column; gap: 4px; flex-shrink: 0; }
+    .out-row {
+      display: flex; align-items: center; gap: 8px;
+      padding: 6px 10px;
+      background: var(--surface); border: 1px solid var(--border); border-radius: var(--r);
+    }
+    .out-label {
+      color: var(--text-dim); font-size: 0.7rem; font-weight: 700;
+      text-transform: uppercase; letter-spacing: 0.08em;
+      min-width: 58px; flex-shrink: 0;
+    }
+    .out-value {
+      flex: 1; font-family: var(--mono); font-size: 0.82rem;
+      overflow: hidden; text-overflow: ellipsis; white-space: nowrap;
+    }
+    .copy-btn {
+      padding: 3px 8px;
+      border: 1px solid var(--border); border-radius: var(--r);
+      background: transparent; color: var(--text-dim);
+      font-size: 0.7rem; cursor: pointer; white-space: nowrap; flex-shrink: 0;
+      transition: background 0.12s, color 0.12s, border-color 0.12s;
+    }
+    .copy-btn:hover { background: var(--surface-hover); color: var(--text); border-color: var(--accent); }
+
+    /* Summary table */
+    .summary-wrap {
+      flex: 1; min-height: 0; overflow-y: auto;
+      border: 1px solid var(--border); border-radius: var(--r);
+    }
+    table { width: 100%; border-collapse: collapse; font-size: 0.82rem; }
+    thead th {
+      position: sticky; top: 0; z-index: 1;
+      background: var(--surface-deep); color: var(--text-dim);
+      padding: 6px 10px; font-size: 0.68rem; font-weight: 700;
+      text-transform: uppercase; letter-spacing: 0.07em;
+      border-bottom: 1px solid var(--border); text-align: left;
+    }
+    tbody td { padding: 7px 10px; font-size: 0.8rem; }
+    tbody tr:nth-child(even) { background: color-mix(in srgb, var(--surface) 60%, var(--bg)); }
+    .td-entity { color: var(--text-dim); }
+    .td-yes { color: var(--success); font-weight: 600; }
+    .td-no  { color: var(--border); }
+    .td-special { color: var(--warn); font-size: 0.75rem; }
+    .td-special-none { color: var(--border); }
+  </style>
+</head>
+<body>
+  <header>
+    <a href="index.html">← Utils</a>
+    <h1>File Permissions</h1>
+    <div class="header-spacer"></div>
+    <button class="theme-toggle" id="theme-toggle" aria-label="Toggle theme" title="Toggle theme"></button>
+  </header>
+
+  <main>
+    <!-- ── Left: input ─────────────────────────────────────────────────── -->
+    <div class="panel">
+      <div class="label">Permission Bits</div>
+
+      <div class="perm-grid" id="perm-grid">
+        <div class="pg-spacer"></div>
+        <div class="pg-col-hdr">Read</div>
+        <div class="pg-col-hdr">Write</div>
+        <div class="pg-col-hdr">Execute</div>
+
+        <div class="pg-row-hdr">Owner</div>
+        <button class="perm-btn" data-idx="0">r</button>
+        <button class="perm-btn" data-idx="1">w</button>
+        <button class="perm-btn" data-idx="2">x</button>
+
+        <div class="pg-row-hdr">Group</div>
+        <button class="perm-btn" data-idx="3">r</button>
+        <button class="perm-btn" data-idx="4">w</button>
+        <button class="perm-btn" data-idx="5">x</button>
+
+        <div class="pg-row-hdr">Other</div>
+        <button class="perm-btn" data-idx="6">r</button>
+        <button class="perm-btn" data-idx="7">w</button>
+        <button class="perm-btn" data-idx="8">x</button>
+      </div>
+
+      <div class="input-pair">
+        <div class="input-group">
+          <div class="label">Octal</div>
+          <input type="text" id="octal-input" maxlength="4" placeholder="e.g. 755" spellcheck="false" autocomplete="off">
+        </div>
+        <div class="input-group">
+          <div class="label">Symbolic</div>
+          <input type="text" id="symbolic-input" maxlength="10" placeholder="rwxr-xr-x" spellcheck="false" autocomplete="off">
+        </div>
+      </div>
+    </div>
+
+    <!-- ── Middle: options ─────────────────────────────────────────────── -->
+    <div class="options-panel">
+
+      <div class="opt-group">
+        <div class="opt-title">File Type</div>
+        <select id="file-type">
+          <option value="-">Regular file  (-)</option>
+          <option value="d">Directory     (d)</option>
+          <option value="l">Symlink       (l)</option>
+          <option value="p">Named pipe    (p)</option>
+          <option value="c">Char device   (c)</option>
+          <option value="b">Block device  (b)</option>
+          <option value="s">Socket        (s)</option>
+        </select>
+      </div>
+
+      <div class="opt-group">
+        <div class="opt-title">Special Bits</div>
+        <div class="opt-row">
+          <label for="cb-setuid">Setuid <code style="font-family:var(--mono);color:var(--accent);font-size:0.75rem">(4000)</code></label>
+          <input type="checkbox" id="cb-setuid">
+        </div>
+        <div class="opt-row">
+          <label for="cb-setgid">Setgid <code style="font-family:var(--mono);color:var(--accent);font-size:0.75rem">(2000)</code></label>
+          <input type="checkbox" id="cb-setgid">
+        </div>
+        <div class="opt-row">
+          <label for="cb-sticky">Sticky <code style="font-family:var(--mono);color:var(--accent);font-size:0.75rem">(1000)</code></label>
+          <input type="checkbox" id="cb-sticky">
+        </div>
+      </div>
+
+      <div class="opt-group">
+        <div class="opt-title">Presets</div>
+        <div id="preset-list"></div>
+      </div>
+
+    </div>
+
+    <!-- ── Right: output ───────────────────────────────────────────────── -->
+    <div class="output-panel">
+      <div class="label">Result</div>
+      <div class="perm-display" id="perm-display"></div>
+
+      <div class="out-rows">
+        <div class="out-row">
+          <span class="out-label">Octal</span>
+          <span class="out-value" id="out-octal"></span>
+          <button class="copy-btn" data-copy="out-octal">Copy</button>
+        </div>
+        <div class="out-row">
+          <span class="out-label">Symbolic</span>
+          <span class="out-value" id="out-symbolic"></span>
+          <button class="copy-btn" data-copy="out-symbolic">Copy</button>
+        </div>
+        <div class="out-row">
+          <span class="out-label">chmod</span>
+          <span class="out-value" id="out-chmod-num" title=""></span>
+          <button class="copy-btn" data-copy="out-chmod-num">Copy</button>
+        </div>
+        <div class="out-row">
+          <span class="out-label">chmod</span>
+          <span class="out-value" id="out-chmod-sym" title=""></span>
+          <button class="copy-btn" data-copy="out-chmod-sym">Copy</button>
+        </div>
+      </div>
+
+      <div class="label">Access Summary</div>
+      <div class="summary-wrap">
+        <table>
+          <thead>
+            <tr>
+              <th>Entity</th>
+              <th>Read</th>
+              <th>Write</th>
+              <th>Execute</th>
+              <th>Special</th>
+            </tr>
+          </thead>
+          <tbody id="summary-tbody"></tbody>
+        </table>
+      </div>
+    </div>
+  </main>
+
+  <script>
+    /* ── State ───────────────────────────────────────────────────────────── */
+    // perms[0..2] = owner r,w,x  |  [3..5] = group r,w,x  |  [6..8] = other r,w,x
+    const state = {
+      fileType: '-',
+      perms: [1,1,0, 1,0,0, 1,0,0], // 644 default
+      setuid: false,
+      setgid: false,
+      sticky: false
+    };
+
+    /* ── Presets ─────────────────────────────────────────────────────────── */
+    const PRESETS = [
+      { group: 'Files', items: [
+        { oct: '644',  label: 'Default file' },
+        { oct: '664',  label: 'Group-writable file' },
+        { oct: '600',  label: 'Private / sensitive' },
+        { oct: '666',  label: 'World-writable' },
+      ]},
+      { group: 'Executables', items: [
+        { oct: '755',  label: 'Default executable' },
+        { oct: '775',  label: 'Group executable' },
+        { oct: '700',  label: 'Private executable' },
+        { oct: '777',  label: 'World executable' },
+      ]},
+      { group: 'Directories', items: [
+        { oct: '755',  label: 'Default directory' },
+        { oct: '775',  label: 'Group directory' },
+        { oct: '700',  label: 'Private directory' },
+        { oct: '2755', label: 'Setgid directory' },
+        { oct: '1777', label: 'Sticky (e.g. /tmp)' },
+      ]},
+      { group: 'Security', items: [
+        { oct: '600',  label: 'SSH private key' },
+        { oct: '644',  label: 'SSH public key' },
+        { oct: '700',  label: '~/.ssh directory' },
+        { oct: '440',  label: 'sudoers file' },
+        { oct: '4755', label: 'Setuid binary' },
+      ]},
+    ];
+
+    /* ── Build preset list ───────────────────────────────────────────────── */
+    const presetListEl = document.getElementById('preset-list');
+    PRESETS.forEach(group => {
+      const wrap = document.createElement('div');
+      wrap.style.cssText = 'display:flex;flex-direction:column;gap:3px;margin-bottom:8px';
+
+      const groupTitle = document.createElement('div');
+      groupTitle.className = 'preset-group-title';
+      groupTitle.textContent = group.group;
+      wrap.appendChild(groupTitle);
+
+      group.items.forEach(p => {
+        const btn = document.createElement('button');
+        btn.className = 'preset-btn';
+        btn.innerHTML = `<span class="preset-oct">${p.oct}</span><span class="preset-name">${p.label}</span>`;
+        btn.addEventListener('click', () => { applyOctal(p.oct); render(); });
+        wrap.appendChild(btn);
+      });
+
+      presetListEl.appendChild(wrap);
+    });
+
+    /* ── Helpers ─────────────────────────────────────────────────────────── */
+    function getOctalStr() {
+      const [ur,uw,ux, gr,gw,gx, or_,ow,ox] = state.perms;
+      const owner   = (ur*4)+(uw*2)+(ux);
+      const group   = (gr*4)+(gw*2)+(gx);
+      const other   = (or_*4)+(ow*2)+(ox);
+      const special = (state.setuid?4:0)+(state.setgid?2:0)+(state.sticky?1:0);
+      return special ? `${special}${owner}${group}${other}` : `${owner}${group}${other}`;
+    }
+
+    function getPermChar(idx) {
+      const base = ['r','w','x','r','w','x','r','w','x'];
+      const on = state.perms[idx];
+      if (idx === 2 && state.setuid) return on ? 's' : 'S';
+      if (idx === 5 && state.setgid) return on ? 's' : 'S';
+      if (idx === 8 && state.sticky) return on ? 't' : 'T';
+      return on ? base[idx] : '-';
+    }
+
+    function getSymbolicPerms() {
+      return Array.from({length: 9}, (_, i) => getPermChar(i)).join('');
+    }
+
+    function getFullSymbolic() {
+      return state.fileType + getSymbolicPerms();
+    }
+
+    function getChmodNumCmd() {
+      return `chmod ${getOctalStr()} <file>`;
+    }
+
+    function getChmodSymCmd() {
+      const [ur,uw,ux, gr,gw,gx, or_,ow,ox] = state.perms;
+      const u = (ur?'r':'')+(uw?'w':'')+(ux?'x':'')+(state.setuid?'s':'');
+      const g = (gr?'r':'')+(gw?'w':'')+(gx?'x':'')+(state.setgid?'s':'');
+      const o = (or_?'r':'')+(ow?'w':'')+(ox?'x':'')+(state.sticky?'t':'');
+      return `chmod u=${u},g=${g},o=${o} <file>`;
+    }
+
+    /* ── Apply from octal string ─────────────────────────────────────────── */
+    function applyOctal(str) {
+      str = str.trim();
+      if (!/^[0-7]{3,4}$/.test(str)) return false;
+      const p = str.padStart(4, '0');
+      const sp = parseInt(p[0]), o = parseInt(p[1]),
+            g  = parseInt(p[2]), ot= parseInt(p[3]);
+      state.setuid = !!(sp & 4);
+      state.setgid = !!(sp & 2);
+      state.sticky = !!(sp & 1);
+      state.perms = [
+        !!(o  & 4)?1:0, !!(o  & 2)?1:0, !!(o  & 1)?1:0,
+        !!(g  & 4)?1:0, !!(g  & 2)?1:0, !!(g  & 1)?1:0,
+        !!(ot & 4)?1:0, !!(ot & 2)?1:0, !!(ot & 1)?1:0,
+      ];
+      return true;
+    }
+
+    /* ── Apply from symbolic string ──────────────────────────────────────── */
+    function applySymbolic(str) {
+      str = str.trim();
+      let p9 = str;
+      if (str.length === 10) {
+        if ('-dlpcbs'.includes(str[0])) {
+          state.fileType = str[0];
+          document.getElementById('file-type').value = str[0];
+          p9 = str.slice(1);
+        } else return false;
+      }
+      if (p9.length !== 9) return false;
+      if (!/^[r-][w-][xsS-][r-][w-][xsS-][r-][w-][xtT-]$/.test(p9)) return false;
+
+      state.perms = [
+        p9[0]==='r'?1:0, p9[1]==='w'?1:0, /[xs]/i.test(p9[2])?1:0,
+        p9[3]==='r'?1:0, p9[4]==='w'?1:0, /[xs]/i.test(p9[5])?1:0,
+        p9[6]==='r'?1:0, p9[7]==='w'?1:0, /[xt]/i.test(p9[8])?1:0,
+      ];
+      state.setuid = /[sS]/.test(p9[2]);
+      state.setgid = /[sS]/.test(p9[5]);
+      state.sticky = /[tT]/.test(p9[8]);
+      return true;
+    }
+
+    /* ── Render ──────────────────────────────────────────────────────────── */
+    const permBtns      = document.querySelectorAll('.perm-btn');
+    const octalInput    = document.getElementById('octal-input');
+    const symbolicInput = document.getElementById('symbolic-input');
+    const fileTypeSelect= document.getElementById('file-type');
+    const cbSetuid      = document.getElementById('cb-setuid');
+    const cbSetgid      = document.getElementById('cb-setgid');
+    const cbSticky      = document.getElementById('cb-sticky');
+    const permDisplay   = document.getElementById('perm-display');
+    const outOctal      = document.getElementById('out-octal');
+    const outSymbolic   = document.getElementById('out-symbolic');
+    const outChmodNum   = document.getElementById('out-chmod-num');
+    const outChmodSym   = document.getElementById('out-chmod-sym');
+    const summaryTbody  = document.getElementById('summary-tbody');
+
+    function buildDisplayHtml() {
+      const full = getFullSymbolic();
+      const type = full[0];
+      const perms = full.slice(1);
+      // Owner=accent(blue), Group=success(teal), Other=warn(yellow)
+      const colors = ['var(--accent)','var(--accent)','var(--accent)',
+                      'var(--success)','var(--success)','var(--success)',
+                      'var(--warn)','var(--warn)','var(--warn)'];
+      let html = `<span style="color:var(--text-dim)">${type}</span>`;
+      for (let i = 0; i < 9; i++) {
+        const ch = perms[i];
+        if (ch === '-') {
+          html += `<span style="color:color-mix(in srgb,var(--border) 80%,var(--surface))">${ch}</span>`;
+        } else if (/^[ST]$/.test(ch)) {
+          // Special bit active, execute not set — unusual, warn
+          html += `<span style="color:var(--warn)">${ch}</span>`;
+        } else {
+          html += `<span style="color:${colors[i]}">${ch}</span>`;
+        }
+      }
+      return html;
+    }
+
+    function updateGridButtons() {
+      permBtns.forEach(btn => {
+        const idx = parseInt(btn.dataset.idx);
+        const ch  = getPermChar(idx);
+        const isOn = !!state.perms[idx];
+        const isSpecialOff = /^[ST]$/.test(ch);
+
+        // Reset inline overrides first
+        btn.style.color = '';
+        btn.style.borderColor = '';
+        btn.style.background = '';
+        btn.textContent = ch;
+
+        if (isSpecialOff) {
+          btn.classList.remove('on');
+          btn.style.color = 'var(--warn)';
+          btn.style.borderColor = 'var(--warn)';
+          btn.style.background = 'color-mix(in srgb, var(--warn) 12%, var(--surface))';
+        } else {
+          btn.classList.toggle('on', isOn);
+        }
+      });
+    }
+
+    function buildSummary() {
+      const [ur,uw,ux, gr,gw,gx, or_,ow,ox] = state.perms;
+      const rows = [
+        { entity: 'Owner (u)', r: ur, w: uw, x: ux, special: state.setuid ? 'setuid' : '' },
+        { entity: 'Group (g)', r: gr, w: gw, x: gx, special: state.setgid ? 'setgid' : '' },
+        { entity: 'Other (o)', r: or_, w: ow, x: ox, special: state.sticky ? 'sticky' : '' },
+      ];
+      summaryTbody.innerHTML = '';
+      rows.forEach(row => {
+        const c = v => v
+          ? `<td class="td-yes">✓</td>`
+          : `<td class="td-no">—</td>`;
+        const tr = document.createElement('tr');
+        tr.innerHTML = `
+          <td class="td-entity">${row.entity}</td>
+          ${c(row.r)}${c(row.w)}${c(row.x)}
+          <td class="${row.special ? 'td-special' : 'td-special-none'}">${row.special || '—'}</td>
+        `;
+        summaryTbody.appendChild(tr);
+      });
+    }
+
+    function render(skipOctal = false, skipSymbolic = false) {
+      updateGridButtons();
+
+      cbSetuid.checked = state.setuid;
+      cbSetgid.checked = state.setgid;
+      cbSticky.checked = state.sticky;
+      fileTypeSelect.value = state.fileType;
+
+      if (!skipOctal) {
+        octalInput.value = getOctalStr();
+        octalInput.classList.remove('invalid');
+      }
+      if (!skipSymbolic) {
+        symbolicInput.value = getSymbolicPerms();
+        symbolicInput.classList.remove('invalid');
+      }
+
+      permDisplay.innerHTML = buildDisplayHtml();
+
+      const chmodNum = getChmodNumCmd();
+      const chmodSym = getChmodSymCmd();
+      outOctal.textContent    = getOctalStr();
+      outSymbolic.textContent = getFullSymbolic();
+      outChmodNum.textContent = chmodNum;
+      outChmodNum.title       = chmodNum;
+      outChmodSym.textContent = chmodSym;
+      outChmodSym.title       = chmodSym;
+
+      buildSummary();
+    }
+
+    /* ── Event listeners ─────────────────────────────────────────────────── */
+    permBtns.forEach(btn => {
+      btn.addEventListener('click', () => {
+        const idx = parseInt(btn.dataset.idx);
+        state.perms[idx] = state.perms[idx] ? 0 : 1;
+        render();
+      });
+    });
+
+    cbSetuid.addEventListener('change', () => { state.setuid = cbSetuid.checked; render(); });
+    cbSetgid.addEventListener('change', () => { state.setgid = cbSetgid.checked; render(); });
+    cbSticky.addEventListener('change', () => { state.sticky = cbSticky.checked; render(); });
+    fileTypeSelect.addEventListener('change', () => { state.fileType = fileTypeSelect.value; render(); });
+
+    octalInput.addEventListener('input', () => {
+      const val = octalInput.value;
+      if (!val) { octalInput.classList.remove('invalid'); return; }
+      // While still short, only flag non-octal characters
+      if (val.length < 3) {
+        octalInput.classList.toggle('invalid', !/^[0-7]+$/.test(val));
+        return;
+      }
+      if (applyOctal(val)) {
+        octalInput.classList.remove('invalid');
+        render(true, false);
+      } else {
+        octalInput.classList.add('invalid');
+      }
+    });
+
+    symbolicInput.addEventListener('input', () => {
+      const val = symbolicInput.value;
+      if (!val) { symbolicInput.classList.remove('invalid'); return; }
+      if (val.length < 9) {
+        symbolicInput.classList.remove('invalid');
+        return;
+      }
+      if (applySymbolic(val)) {
+        symbolicInput.classList.remove('invalid');
+        render(false, true);
+      } else {
+        symbolicInput.classList.add('invalid');
+      }
+    });
+
+    document.querySelectorAll('.copy-btn').forEach(btn => {
+      btn.addEventListener('click', () => {
+        const text = document.getElementById(btn.dataset.copy).textContent;
+        navigator.clipboard.writeText(text).then(() => {
+          const orig = btn.textContent;
+          btn.textContent = 'Copied!';
+          setTimeout(() => { btn.textContent = orig; }, 1400);
+        });
+      });
+    });
+
+    /* ── Theme toggle ─────────────────────────────────────────────────────── */
+    const SUN_SVG = `<svg width="15" height="15" viewBox="0 0 24 24" fill="none"
+        stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round">
+      <circle cx="12" cy="12" r="5"/>
+      <line x1="12" y1="1"  x2="12" y2="3"/>  <line x1="12" y1="21" x2="12" y2="23"/>
+      <line x1="4.22"  y1="4.22"  x2="5.64"  y2="5.64"/>
+      <line x1="18.36" y1="18.36" x2="19.78" y2="19.78"/>
+      <line x1="1"  y1="12" x2="3"  y2="12"/>  <line x1="21" y1="12" x2="23" y2="12"/>
+      <line x1="4.22"  y1="19.78" x2="5.64"  y2="18.36"/>
+      <line x1="18.36" y1="5.64"  x2="19.78" y2="4.22"/>
+    </svg>`;
+    const MOON_SVG = `<svg width="15" height="15" viewBox="0 0 24 24" fill="none"
+        stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round">
+      <path d="M21 12.79A9 9 0 1 1 11.21 3 7 7 0 0 0 21 12.79z"/>
+    </svg>`;
+
+    const toggleBtn = document.getElementById('theme-toggle');
+    function applyTheme(theme) {
+      document.documentElement.dataset.theme = theme;
+      localStorage.setItem('utils-theme', theme);
+      const isDark = theme === 'dark';
+      toggleBtn.innerHTML = isDark ? SUN_SVG : MOON_SVG;
+      toggleBtn.setAttribute('aria-label', isDark ? 'Switch to light mode' : 'Switch to dark mode');
+      toggleBtn.setAttribute('title',      isDark ? 'Switch to light mode' : 'Switch to dark mode');
+    }
+    toggleBtn.addEventListener('click', () => {
+      applyTheme(document.documentElement.dataset.theme === 'dark' ? 'light' : 'dark');
+    });
+    applyTheme(document.documentElement.dataset.theme);
+
+    /* ── Init ─────────────────────────────────────────────────────────────── */
+    render();
+  </script>
+</body>
+</html>

@@ -1,0 +1,1050 @@
+<!DOCTYPE html>
+<html lang="en" data-theme="dark">
+<head>
+  <meta charset="UTF-8">
+  <meta name="viewport" content="width=device-width, initial-scale=1.0">
+  <title>Cron — Utils</title>
+  <script>
+    (function () {
+      const saved = localStorage.getItem('utils-theme');
+      const preferred = saved || (window.matchMedia('(prefers-color-scheme: light)').matches ? 'light' : 'dark');
+      document.documentElement.dataset.theme = preferred;
+    })();
+  </script>
+  <style>
+    *, *::before, *::after { box-sizing: border-box; margin: 0; padding: 0; }
+    :root {
+      --bg: #1e1e1e; --surface: #252526; --surface-hover: #2a2d2e;
+      --surface-deep: #222222;
+      --border: #3c3c3c; --accent: #0078d4; --accent-hover: #106ebe;
+      --text: #d4d4d4; --text-dim: #888;
+      --mono: 'Cascadia Code', Consolas, 'Courier New', monospace;
+      --r: 5px;
+      --success: #4ec9b0; --warn: #dcdcaa; --error: #f44747;
+    }
+    [data-theme="light"] {
+      --bg: #f8f8f8; --surface: #ffffff; --surface-hover: #f0f0f0;
+      --surface-deep: #ebebeb;
+      --border: #d0d0d0; --accent: #0078d4; --accent-hover: #106ebe;
+      --text: #1f1f1f; --text-dim: #767676;
+      --success: #0e7a6e; --warn: #7a6400; --error: #c72e2e;
+    }
+
+    body {
+      font-family: -apple-system, BlinkMacSystemFont, 'Segoe UI', sans-serif;
+      background: var(--bg); color: var(--text);
+      height: 100vh; display: grid; grid-template-rows: auto 1fr; overflow: hidden;
+    }
+
+    /* ── Header ─────────────────────────────────────────────────────────── */
+    header {
+      display: flex; align-items: center; gap: 16px;
+      padding: 0 20px; height: 48px; border-bottom: 1px solid var(--border);
+      flex-shrink: 0;
+    }
+    header a { color: var(--text-dim); text-decoration: none; font-size: 0.82rem; }
+    header a:hover { color: var(--text); }
+    header h1 { font-size: 1rem; font-weight: 600; }
+    .header-spacer { flex: 1; }
+    .theme-toggle {
+      display: flex; align-items: center; justify-content: center;
+      width: 30px; height: 30px; padding: 0;
+      border: 1px solid var(--border); border-radius: var(--r);
+      background: transparent; color: var(--text-dim);
+      cursor: pointer; flex-shrink: 0;
+      transition: background 0.15s, color 0.15s, border-color 0.15s;
+    }
+    .theme-toggle:hover { background: var(--surface-hover); color: var(--text); border-color: var(--accent); }
+    .theme-toggle svg { display: block; pointer-events: none; }
+
+    /* ── 3-column layout ────────────────────────────────────────────────── */
+    main {
+      display: grid; grid-template-columns: 1fr 240px 1fr;
+      min-height: 0; overflow: hidden;
+    }
+
+    .label {
+      font-size: 0.68rem; font-weight: 700; text-transform: uppercase;
+      letter-spacing: 0.1em; color: var(--text-dim); flex-shrink: 0;
+    }
+
+    /* ── Left panel ─────────────────────────────────────────────────────── */
+    .left-panel {
+      display: flex; flex-direction: column;
+      padding: 14px; gap: 10px; min-height: 0; overflow: hidden;
+      border-right: 1px solid var(--border);
+    }
+
+    textarea {
+      flex: 1; min-height: 0; resize: none;
+      background: var(--surface); border: 1px solid var(--border);
+      border-radius: var(--r); color: var(--text);
+      font-family: var(--mono); font-size: 0.85rem; line-height: 1.75;
+      padding: 10px 12px; outline: none; transition: border-color 0.15s;
+    }
+    textarea:focus { border-color: var(--accent); }
+    textarea::placeholder { color: var(--text-dim); }
+
+    /* ── Middle / options panel ─────────────────────────────────────────── */
+    .options-panel {
+      display: flex; flex-direction: column; gap: 14px;
+      padding: 14px; overflow-y: auto; min-height: 0;
+      border-right: 1px solid var(--border);
+    }
+    .opt-group { display: flex; flex-direction: column; gap: 8px; }
+    .opt-title {
+      font-size: 0.68rem; font-weight: 700; text-transform: uppercase;
+      letter-spacing: 0.1em; color: var(--text-dim);
+      border-bottom: 1px solid var(--border); padding-bottom: 5px;
+    }
+    .opt-row {
+      display: flex; align-items: center; justify-content: space-between;
+      gap: 8px; font-size: 0.83rem;
+    }
+    .opt-row label { cursor: pointer; user-select: none; }
+    input[type="checkbox"] {
+      width: 14px; height: 14px; cursor: pointer;
+      accent-color: var(--accent); flex-shrink: 0;
+    }
+    input[type="number"] {
+      width: 56px; padding: 4px 6px;
+      background: var(--surface); border: 1px solid var(--border);
+      border-radius: var(--r); color: var(--text);
+      font-family: var(--mono); font-size: 0.83rem; outline: none;
+      transition: border-color 0.15s;
+    }
+    input[type="number"]:focus { border-color: var(--accent); }
+
+    .tz-info {
+      font-size: 0.78rem; color: var(--text-dim);
+      font-family: var(--mono); word-break: break-all;
+    }
+
+    /* Preset buttons */
+    .preset-list { display: flex; flex-direction: column; gap: 4px; }
+    .preset-btn {
+      display: flex; align-items: center; justify-content: space-between;
+      gap: 6px; padding: 6px 9px;
+      background: var(--surface); border: 1px solid var(--border); border-radius: var(--r);
+      color: var(--text); font-size: 0.8rem; cursor: pointer; text-align: left;
+      transition: background 0.12s, border-color 0.12s;
+    }
+    .preset-btn:hover { background: var(--surface-hover); border-color: var(--accent); }
+    .preset-btn .preset-name { font-weight: 500; flex-shrink: 0; }
+    .preset-btn .preset-expr {
+      font-family: var(--mono); font-size: 0.72rem; color: var(--text-dim);
+      overflow: hidden; text-overflow: ellipsis; white-space: nowrap;
+    }
+
+    /* ── Right / analysis panel ─────────────────────────────────────────── */
+    .right-panel {
+      display: flex; flex-direction: column;
+      padding: 14px; gap: 10px; min-height: 0; overflow: hidden;
+    }
+    .panel-top {
+      display: flex; align-items: center; gap: 10px; flex-shrink: 0;
+    }
+    .btn {
+      padding: 5px 14px;
+      background: var(--surface); border: 1px solid var(--border); border-radius: var(--r);
+      color: var(--text); font-size: 0.82rem; cursor: pointer;
+      transition: background 0.12s, border-color 0.12s;
+    }
+    .btn:hover { background: var(--surface-hover); border-color: var(--accent); }
+    .btn.copied { border-color: var(--success); color: var(--success); }
+
+    .analysis-scroll {
+      flex: 1; min-height: 0; overflow-y: auto;
+      display: flex; flex-direction: column; gap: 8px;
+    }
+
+    /* ── Entry block ────────────────────────────────────────────────────── */
+    .entry {
+      background: var(--surface); border: 1px solid var(--border);
+      border-radius: var(--r); padding: 10px 12px;
+      display: flex; flex-direction: column; gap: 6px;
+      flex-shrink: 0;
+    }
+    .entry-line {
+      display: flex; align-items: baseline; gap: 8px; flex-wrap: wrap;
+    }
+    .entry-linenum {
+      font-size: 0.68rem; color: var(--text-dim); flex-shrink: 0;
+      font-family: var(--mono);
+    }
+    .entry-expr {
+      font-family: var(--mono); font-size: 0.83rem;
+      color: var(--text); word-break: break-all;
+    }
+    .entry-comment {
+      font-family: var(--mono); font-size: 0.83rem;
+      color: var(--text-dim); font-style: italic;
+    }
+    .status-badge {
+      font-size: 0.68rem; font-weight: 700; padding: 1px 6px;
+      border-radius: 3px; text-transform: uppercase; letter-spacing: 0.05em;
+      flex-shrink: 0;
+    }
+    .badge-valid    { background: color-mix(in srgb, var(--success) 15%, transparent); color: var(--success); }
+    .badge-invalid  { background: color-mix(in srgb, var(--error)   15%, transparent); color: var(--error); }
+    .badge-comment  { background: color-mix(in srgb, var(--text-dim) 12%, transparent); color: var(--text-dim); }
+    .badge-reboot   { background: color-mix(in srgb, var(--warn) 15%, transparent); color: var(--warn); }
+    .badge-variable { background: color-mix(in srgb, var(--accent) 15%, transparent); color: var(--accent); }
+
+    .entry-desc {
+      font-size: 0.85rem; color: var(--text);
+    }
+    .entry-command {
+      font-family: var(--mono); font-size: 0.78rem; color: var(--text-dim);
+    }
+    .entry-error {
+      font-size: 0.78rem; color: var(--error); font-family: var(--mono);
+    }
+
+    .runs-label {
+      font-size: 0.68rem; font-weight: 700; text-transform: uppercase;
+      letter-spacing: 0.08em; color: var(--text-dim); margin-top: 2px;
+    }
+    .runs-list {
+      display: flex; flex-direction: column; gap: 2px;
+    }
+    .run-item {
+      font-family: var(--mono); font-size: 0.78rem; color: var(--warn);
+    }
+
+    .empty-state {
+      color: var(--text-dim); font-size: 0.83rem; font-style: italic;
+      padding: 8px 0;
+    }
+
+    /* scrollbar */
+    .analysis-scroll::-webkit-scrollbar,
+    .options-panel::-webkit-scrollbar { width: 6px; }
+    .analysis-scroll::-webkit-scrollbar-track,
+    .options-panel::-webkit-scrollbar-track { background: transparent; }
+    .analysis-scroll::-webkit-scrollbar-thumb,
+    .options-panel::-webkit-scrollbar-thumb { background: var(--border); border-radius: 3px; }
+  </style>
+</head>
+<body>
+  <header>
+    <a href="index.html">← Utils</a>
+    <h1>Cron</h1>
+    <div class="header-spacer"></div>
+    <button class="theme-toggle" id="theme-toggle" aria-label="Toggle theme" title="Toggle theme"></button>
+  </header>
+
+  <main>
+    <!-- ── Left: Input ──────────────────────────────────────────────────── -->
+    <div class="left-panel">
+      <span class="label">Crontab</span>
+      <textarea id="cron-input" spellcheck="false"
+        placeholder="SHELL=/bin/bash
+MAILTO=root
+# backups
+0 2 * * * /usr/bin/backup.sh
+*/5 * * * * check_status.py  # every 5 min
+30 8 * * 1-5  # weekday mornings
+@reboot /usr/sbin/init-tasks"></textarea>
+    </div>
+
+    <!-- ── Middle: Options ─────────────────────────────────────────────── -->
+    <div class="options-panel">
+
+      <div class="opt-group">
+        <div class="opt-title">Format</div>
+        <div class="opt-row">
+          <label for="use-seconds">Include seconds field</label>
+          <input type="checkbox" id="use-seconds">
+        </div>
+        <div class="opt-row" style="font-size:0.75rem; color:var(--text-dim); line-height:1.4;">
+          <span id="field-hint">5 fields: min hr dom mon dow</span>
+        </div>
+      </div>
+
+      <div class="opt-group">
+        <div class="opt-title">Display</div>
+        <div class="opt-row">
+          <label for="use-24h">24-hour time</label>
+          <input type="checkbox" id="use-24h" checked>
+        </div>
+        <div class="opt-row">
+          <label for="run-count">Next runs to show</label>
+          <input type="number" id="run-count" value="5" min="1" max="20">
+        </div>
+      </div>
+
+      <div class="opt-group">
+        <div class="opt-title">Timezone</div>
+        <div class="tz-info" id="tz-display"></div>
+      </div>
+
+      <div class="opt-group">
+        <div class="opt-title">Presets</div>
+        <div class="preset-list" id="preset-list"></div>
+      </div>
+
+    </div>
+
+    <!-- ── Right: Analysis ─────────────────────────────────────────────── -->
+    <div class="right-panel">
+      <div class="panel-top">
+        <span class="label">Analysis</span>
+        <button class="btn" id="copy-btn">Copy</button>
+      </div>
+      <div class="analysis-scroll" id="analysis"></div>
+    </div>
+  </main>
+
+  <script>
+    // ── Constants ──────────────────────────────────────────────────────────
+    const FIELD_RANGES = {
+      second: { min: 0, max: 59 },
+      minute: { min: 0, max: 59 },
+      hour:   { min: 0, max: 23 },
+      dom:    { min: 1, max: 31 },
+      month:  { min: 1, max: 12 },
+      dow:    { min: 0, max: 7  },
+    };
+
+    const MONTH_MAP = { jan:1,feb:2,mar:3,apr:4,may:5,jun:6,jul:7,aug:8,sep:9,oct:10,nov:11,dec:12 };
+    const DOW_MAP   = { sun:0,mon:1,tue:2,wed:3,thu:4,fri:5,sat:6 };
+
+    const MONTH_NAMES = ['January','February','March','April','May','June',
+                         'July','August','September','October','November','December'];
+    const DOW_NAMES   = ['Sunday','Monday','Tuesday','Wednesday','Thursday','Friday','Saturday'];
+
+    const SPECIALS = {
+      '@yearly':   '0 0 1 1 *',
+      '@annually': '0 0 1 1 *',
+      '@monthly':  '0 0 1 * *',
+      '@weekly':   '0 0 * * 0',
+      '@daily':    '0 0 * * *',
+      '@midnight': '0 0 * * *',
+      '@hourly':   '0 * * * *',
+    };
+
+    const PRESETS = [
+      { name: 'Every minute',      expr: '* * * * *'     },
+      { name: 'Every 5 minutes',   expr: '*/5 * * * *'   },
+      { name: 'Every 15 minutes',  expr: '*/15 * * * *'  },
+      { name: 'Every 30 minutes',  expr: '*/30 * * * *'  },
+      { name: 'Hourly',            expr: '0 * * * *'     },
+      { name: 'Every 2 hours',     expr: '0 */2 * * *'   },
+      { name: 'Every 6 hours',     expr: '0 */6 * * *'   },
+      { name: 'Daily midnight',    expr: '0 0 * * *'     },
+      { name: 'Daily at 2 AM',     expr: '0 2 * * *'     },
+      { name: 'Daily at noon',     expr: '0 12 * * *'    },
+      { name: 'Weekdays at 9 AM',  expr: '0 9 * * 1-5'  },
+      { name: 'Weekdays midnight', expr: '0 0 * * 1-5'  },
+      { name: 'Weekends midnight', expr: '0 0 * * 0,6'  },
+      { name: 'Weekly (Sunday)',   expr: '0 0 * * 0'     },
+      { name: 'Monthly (1st)',     expr: '0 0 1 * *'     },
+      { name: 'Yearly (Jan 1st)',  expr: '0 0 1 1 *'     },
+    ];
+
+    // ── Parser ─────────────────────────────────────────────────────────────
+    function parseField(expr, type) {
+      const { min, max } = FIELD_RANGES[type];
+      const result = new Set();
+
+      for (let part of expr.split(',')) {
+        part = part.trim().toLowerCase();
+
+        let step = 1;
+        if (part.includes('/')) {
+          const slash = part.lastIndexOf('/');
+          const stepStr = part.slice(slash + 1);
+          step = parseInt(stepStr, 10);
+          if (!Number.isInteger(step) || step < 1) throw new Error(`Invalid step /${stepStr}`);
+          part = part.slice(0, slash);
+        }
+
+        // Resolve named values
+        if (type === 'month') {
+          part = part.replace(/[a-z]+/g, m => {
+            const v = MONTH_MAP[m];
+            if (v === undefined) throw new Error(`Unknown month "${m}"`);
+            return v;
+          });
+        } else if (type === 'dow') {
+          part = part.replace(/[a-z]+/g, d => {
+            const v = DOW_MAP[d];
+            if (v === undefined) throw new Error(`Unknown day "${d}"`);
+            return v;
+          });
+        }
+
+        let lo, hi;
+        if (part === '*') {
+          lo = min; hi = max;
+        } else if (part.includes('-')) {
+          const [a, b] = part.split('-');
+          lo = parseInt(a, 10); hi = parseInt(b, 10);
+          if (isNaN(lo) || isNaN(hi)) throw new Error(`Invalid range "${part}"`);
+          if (lo < min || hi > max || lo > hi) throw new Error(`Range ${lo}-${hi} out of bounds for ${type} (${min}-${max})`);
+        } else {
+          const v = parseInt(part, 10);
+          if (isNaN(v)) throw new Error(`Invalid value "${part}" for ${type}`);
+          // Allow 7 for DOW (= Sunday = 0)
+          if (type === 'dow' && v === 7) { result.add(0); continue; }
+          if (v < min || v > max) throw new Error(`Value ${v} out of range for ${type} (${min}-${max})`);
+          result.add(v);
+          continue;
+        }
+
+        for (let i = lo; i <= hi; i += step) {
+          result.add(type === 'dow' && i === 7 ? 0 : i);
+        }
+      }
+
+      return result;
+    }
+
+    function parseCronExpr(raw, useSeconds) {
+      const trimmed = raw.trim();
+      const low = trimmed.toLowerCase();
+      const firstWord = low.split(/\s+/)[0];
+
+      // @reboot (with optional command)
+      if (firstWord === '@reboot') {
+        const rest = trimmed.slice(firstWord.length).trim();
+        return { reboot: true, command: rest || null };
+      }
+
+      let expr = trimmed;
+      let command = null;
+
+      // @special strings with optional command (e.g. @daily /path/to/script)
+      if (SPECIALS[firstWord]) {
+        const rest = trimmed.slice(firstWord.length).trim();
+        expr = SPECIALS[firstWord];
+        if (rest) command = rest;
+      }
+
+      const parts = expr.split(/\s+/);
+      const expected = useSeconds ? 6 : 5;
+
+      if (parts.length < expected) {
+        throw new Error(`Expected ${expected} fields, got ${parts.length}`);
+      }
+
+      // Fields beyond the schedule are the command
+      if (parts.length > expected && command === null) {
+        command = parts.slice(expected).join(' ');
+      }
+
+      const scheduleParts = parts.slice(0, expected);
+
+      let fieldNames;
+      if (useSeconds) {
+        fieldNames = ['second','minute','hour','dom','month','dow'];
+      } else {
+        fieldNames = ['minute','hour','dom','month','dow'];
+      }
+
+      const fields = {};
+      const isWildcard = {};
+      for (let i = 0; i < fieldNames.length; i++) {
+        const name = fieldNames[i];
+        const rawField = scheduleParts[i];
+        isWildcard[name] = (rawField === '*');
+        fields[name] = parseField(rawField, name);
+      }
+
+      // Ensure second field exists for next-run calculator
+      if (!useSeconds) {
+        fields.second = new Set([0]);
+        isWildcard.second = false;
+      }
+
+      return { fields, isWildcard, parts: scheduleParts, fieldNames, command };
+    }
+
+    // ── Next runs ──────────────────────────────────────────────────────────
+    function getNextRuns(parsed, count, useSeconds) {
+      const { fields, isWildcard } = parsed;
+      const results = [];
+
+      const now = new Date();
+      let cur = new Date(now.getFullYear(), now.getMonth(), now.getDate(),
+                         now.getHours(), now.getMinutes(), now.getSeconds(), 0);
+
+      // Advance by one tick to avoid returning "now"
+      if (useSeconds) {
+        cur = new Date(cur.getTime() + 1000);
+      } else {
+        cur = new Date(cur.getTime() + 60000);
+        cur.setSeconds(0, 0);
+      }
+
+      const maxIter = useSeconds ? 60 * 60 * 24 * 400 : 60 * 24 * 400;
+
+      for (let iter = 0; iter < maxIter && results.length < count; iter++) {
+        const mon = cur.getMonth() + 1;
+        const dom = cur.getDate();
+        const dow = cur.getDay();
+        const hr  = cur.getHours();
+        const min = cur.getMinutes();
+        const sec = cur.getSeconds();
+
+        if (!fields.month.has(mon)) {
+          cur = new Date(cur.getFullYear(), cur.getMonth() + 1, 1, 0, 0, 0, 0);
+          continue;
+        }
+
+        const domOk = fields.dom.has(dom);
+        const dowOk = fields.dow.has(dow);
+        let dayOk;
+        if (!isWildcard.dom && !isWildcard.dow) {
+          dayOk = domOk || dowOk;
+        } else if (!isWildcard.dom) {
+          dayOk = domOk;
+        } else if (!isWildcard.dow) {
+          dayOk = dowOk;
+        } else {
+          dayOk = true;
+        }
+
+        if (!dayOk) {
+          cur = new Date(cur.getFullYear(), cur.getMonth(), cur.getDate() + 1, 0, 0, 0, 0);
+          continue;
+        }
+
+        if (!fields.hour.has(hr)) {
+          cur = new Date(cur.getFullYear(), cur.getMonth(), cur.getDate(), cur.getHours() + 1, 0, 0, 0);
+          continue;
+        }
+
+        if (!fields.minute.has(min)) {
+          cur = new Date(cur.getFullYear(), cur.getMonth(), cur.getDate(),
+                         cur.getHours(), cur.getMinutes() + 1, 0, 0);
+          continue;
+        }
+
+        if (!fields.second.has(sec)) {
+          cur = new Date(cur.getTime() + 1000);
+          continue;
+        }
+
+        results.push(new Date(cur));
+        cur = new Date(cur.getTime() + (useSeconds ? 1000 : 60000));
+        if (!useSeconds) cur.setSeconds(0, 0);
+      }
+
+      return results;
+    }
+
+    // ── Description ────────────────────────────────────────────────────────
+    function ordinal(n) {
+      const v = n % 100;
+      const sfx = ['th','st','nd','rd'];
+      return n + (sfx[(v - 20) % 10] || sfx[v] || sfx[0]);
+    }
+
+    function fmtTime(h, m, use24h) {
+      if (use24h) return `${String(h).padStart(2,'0')}:${String(m).padStart(2,'0')}`;
+      const period = h < 12 ? 'AM' : 'PM';
+      const h12 = h === 0 ? 12 : h > 12 ? h - 12 : h;
+      return `${h12}:${String(m).padStart(2,'0')} ${period}`;
+    }
+
+    function listify(arr) {
+      if (arr.length === 0) return '';
+      if (arr.length === 1) return arr[0];
+      if (arr.length === 2) return `${arr[0]} and ${arr[1]}`;
+      return arr.slice(0, -1).join(', ') + ', and ' + arr[arr.length - 1];
+    }
+
+    function resolveNamed(s) {
+      return s.toLowerCase()
+        .replace(/\bjan\b/g,'1').replace(/\bfeb\b/g,'2').replace(/\bmar\b/g,'3')
+        .replace(/\bapr\b/g,'4').replace(/\bmay\b/g,'5').replace(/\bjun\b/g,'6')
+        .replace(/\bjul\b/g,'7').replace(/\baug\b/g,'8').replace(/\bsep\b/g,'9')
+        .replace(/\boct\b/g,'10').replace(/\bnov\b/g,'11').replace(/\bdec\b/g,'12')
+        .replace(/\bsun\b/g,'0').replace(/\bmon\b/g,'1').replace(/\btue\b/g,'2')
+        .replace(/\bwed\b/g,'3').replace(/\bthu\b/g,'4').replace(/\bfri\b/g,'5')
+        .replace(/\bsat\b/g,'6');
+    }
+
+    function describeTimePart(secF, minF, hrF, useSeconds, use24h) {
+      const secAll = !useSeconds || secF === '*';
+
+      // Every second
+      if (useSeconds && secF === '*' && minF === '*' && hrF === '*') return 'Every second';
+
+      // Specific second steps
+      if (useSeconds && minF === '*' && hrF === '*') {
+        if (/^\*\/\d+$/.test(secF)) {
+          const n = parseInt(secF.slice(2));
+          return n === 1 ? 'Every second' : `Every ${n} seconds`;
+        }
+        return `At second ${secF} of every minute`;
+      }
+
+      // Every minute
+      if (minF === '*' && hrF === '*' && secAll) return 'Every minute';
+
+      // Every N minutes
+      if (/^\*\/\d+$/.test(minF) && hrF === '*' && secAll) {
+        const n = parseInt(minF.slice(2));
+        return n === 1 ? 'Every minute' : `Every ${n} minutes`;
+      }
+
+      // Top of every hour
+      if (minF === '0' && hrF === '*' && secAll) return 'At the top of every hour';
+
+      // Every N hours (at :00)
+      if (minF === '0' && /^\*\/\d+$/.test(hrF) && secAll) {
+        const n = parseInt(hrF.slice(2));
+        return `Every ${n} hour${n !== 1 ? 's' : ''}, on the hour`;
+      }
+
+      // Specific minute + hour(s)
+      const minSimple = /^\d+$/.test(minF);
+      const hrSimple  = /^\d+$/.test(hrF);
+      const hrList    = /^\d+(,\d+)+$/.test(hrF);
+      const hrRange   = /^\d+-\d+$/.test(hrF);
+
+      if (minSimple && hrSimple && secAll) {
+        return `At ${fmtTime(parseInt(hrF), parseInt(minF), use24h)}`;
+      }
+      if (minSimple && hrList && secAll) {
+        const times = hrF.split(',').map(h => fmtTime(parseInt(h), parseInt(minF), use24h));
+        return `At ${listify(times)}`;
+      }
+      if (minSimple && hrRange && secAll) {
+        const [a, b] = hrF.split('-').map(Number);
+        if (b - a <= 6) {
+          const times = [];
+          for (let h = a; h <= b; h++) times.push(fmtTime(h, parseInt(minF), use24h));
+          return `At ${listify(times)}`;
+        }
+        return `At ${fmtTime(a, parseInt(minF), use24h)} through ${fmtTime(b, parseInt(minF), use24h)}`;
+      }
+
+      // Fallback
+      const pieces = [];
+      if (useSeconds && secF !== '*') pieces.push(`second ${secF}`);
+      if (minF !== '*') pieces.push(`minute ${minF}`);
+      if (hrF !== '*') pieces.push(`hour ${hrF}`);
+      return pieces.length ? `When ${pieces.join(', ')}` : 'Every minute';
+    }
+
+    function describeDayPart(domF, monF, dowF) {
+      const domWild = domF === '*';
+      const monWild = monF === '*';
+      const dowWild = dowF === '*';
+      if (domWild && monWild && dowWild) return '';
+
+      let dayDesc = '', monDesc = '';
+
+      // Month
+      if (!monWild) {
+        const r = resolveNamed(monF);
+        if (/^\d+$/.test(r)) {
+          monDesc = `in ${MONTH_NAMES[parseInt(r) - 1]}`;
+        } else if (/^\d+(,\d+)+$/.test(r)) {
+          const names = r.split(',').map(v => MONTH_NAMES[parseInt(v) - 1]);
+          monDesc = `in ${listify(names)}`;
+        } else if (/^\d+-\d+$/.test(r)) {
+          const [a, b] = r.split('-').map(Number);
+          monDesc = `from ${MONTH_NAMES[a - 1]} to ${MONTH_NAMES[b - 1]}`;
+        } else {
+          monDesc = `in month ${monF}`;
+        }
+      }
+
+      // Day of week
+      if (!dowWild) {
+        const r = resolveNamed(dowF);
+        const norm = r.replace(/\b7\b/g, '0');
+        if (/^\d+$/.test(norm)) {
+          const d = parseInt(norm) % 7;
+          dayDesc = `on ${DOW_NAMES[d]}s`;
+        } else if (norm === '1-5') {
+          dayDesc = 'on weekdays (Mon–Fri)';
+        } else if (norm === '0,6' || norm === '6,0' || norm === '0-6') {
+          dayDesc = 'every day of the week';
+        } else if (/^\d+(,\d+)+$/.test(norm)) {
+          const names = norm.split(',').map(v => DOW_NAMES[parseInt(v) % 7]);
+          dayDesc = `on ${listify(names)}`;
+        } else if (/^\d+-\d+$/.test(norm)) {
+          const [a, b] = norm.split('-').map(Number);
+          dayDesc = `${DOW_NAMES[a % 7]} through ${DOW_NAMES[b % 7]}`;
+        } else {
+          dayDesc = `on day-of-week ${dowF}`;
+        }
+      }
+
+      // Day of month
+      if (!domWild) {
+        const r = resolveNamed(domF);
+        if (/^\d+$/.test(r)) {
+          dayDesc = `on the ${ordinal(parseInt(r))}`;
+        } else if (/^\d+(,\d+)+$/.test(r)) {
+          const ords = r.split(',').map(v => ordinal(parseInt(v)));
+          dayDesc = `on the ${listify(ords)} of the month`;
+        } else {
+          dayDesc = `on day ${domF} of the month`;
+        }
+      }
+
+      return [dayDesc, monDesc].filter(Boolean).join(' ');
+    }
+
+    function describeExpr(rawExpr, useSeconds, use24h) {
+      const low = rawExpr.trim().toLowerCase();
+
+      // Special strings
+      const specialDescs = {
+        '@yearly':   'Once a year — at midnight on January 1st',
+        '@annually': 'Once a year — at midnight on January 1st',
+        '@monthly':  'Once a month — at midnight on the 1st',
+        '@weekly':   'Once a week — at midnight on Sunday',
+        '@daily':    'Once a day — at midnight',
+        '@midnight': 'Once a day — at midnight',
+        '@hourly':   'Once an hour — at the top of the hour',
+        '@reboot':   'At system startup',
+      };
+      if (specialDescs[low]) return specialDescs[low];
+
+      // Expand specials for field parsing
+      const expr = SPECIALS[low] || rawExpr.trim();
+      const parts = expr.split(/\s+/);
+
+      let secF, minF, hrF, domF, monF, dowF;
+      if (useSeconds) {
+        [secF, minF, hrF, domF, monF, dowF] = parts;
+      } else {
+        secF = null;
+        [minF, hrF, domF, monF, dowF] = parts;
+      }
+
+      const timePart = describeTimePart(secF, minF, hrF, useSeconds, use24h);
+      const dayPart  = describeDayPart(domF, monF, dowF);
+
+      if (!dayPart) return timePart;
+      return `${timePart}, ${dayPart}`;
+    }
+
+    // ── Renderer ───────────────────────────────────────────────────────────
+    function formatRunDate(d, use24h) {
+      const dayNames = ['Sun','Mon','Tue','Wed','Thu','Fri','Sat'];
+      const monNames = ['Jan','Feb','Mar','Apr','May','Jun','Jul','Aug','Sep','Oct','Nov','Dec'];
+      const day = dayNames[d.getDay()];
+      const dom = String(d.getDate()).padStart(2, '0');
+      const mon = monNames[d.getMonth()];
+      const yr  = d.getFullYear();
+      const hr  = d.getHours();
+      const min = String(d.getMinutes()).padStart(2, '0');
+      const sec = String(d.getSeconds()).padStart(2, '0');
+
+      let time;
+      if (use24h) {
+        time = `${String(hr).padStart(2,'0')}:${min}`;
+        if (d.getSeconds() !== 0) time += `:${sec}`;
+      } else {
+        const period = hr < 12 ? 'AM' : 'PM';
+        const h12 = hr === 0 ? 12 : hr > 12 ? hr - 12 : hr;
+        time = `${h12}:${min}`;
+        if (d.getSeconds() !== 0) time += `:${sec}`;
+        time += ` ${period}`;
+      }
+
+      return `${day}, ${dom} ${mon} ${yr}  ${time}`;
+    }
+
+    function renderOutput() {
+      const raw = document.getElementById('cron-input').value;
+      const useSeconds = document.getElementById('use-seconds').checked;
+      const use24h     = document.getElementById('use-24h').checked;
+      const runCount   = Math.max(1, Math.min(20, parseInt(document.getElementById('run-count').value) || 5));
+      const container  = document.getElementById('analysis');
+
+      const lines = raw.split('\n');
+      container.innerHTML = '';
+
+      if (lines.every(l => l.trim() === '')) {
+        container.innerHTML = '<div class="empty-state">Enter cron expressions above to see analysis.</div>';
+        return;
+      }
+
+      let hasContent = false;
+
+      lines.forEach((line, idx) => {
+        const lineNum = idx + 1;
+
+        // Strip inline comment from expression
+        let expr = line;
+        let inlineComment = '';
+        const commentIdx = line.indexOf('#');
+        if (commentIdx !== -1) {
+          expr = line.slice(0, commentIdx).trim();
+          inlineComment = line.slice(commentIdx).trim();
+        }
+
+        expr = expr.trim();
+
+        // Blank line
+        if (!expr && !inlineComment) return;
+
+        hasContent = true;
+        const el = document.createElement('div');
+        el.className = 'entry';
+
+        // Line number + expression
+        const lineRow = document.createElement('div');
+        lineRow.className = 'entry-line';
+
+        const numEl = document.createElement('span');
+        numEl.className = 'entry-linenum';
+        numEl.textContent = `L${lineNum}`;
+        lineRow.appendChild(numEl);
+
+        // Pure comment line
+        if (!expr) {
+          const badge = document.createElement('span');
+          badge.className = 'status-badge badge-comment';
+          badge.textContent = 'comment';
+          lineRow.appendChild(badge);
+
+          const commentEl = document.createElement('span');
+          commentEl.className = 'entry-comment';
+          commentEl.textContent = inlineComment;
+          lineRow.appendChild(commentEl);
+
+          el.appendChild(lineRow);
+          container.appendChild(el);
+          return;
+        }
+
+        // Variable definition (e.g. SHELL=/bin/bash, MAILTO=root)
+        const varMatch = expr.match(/^([A-Za-z_][A-Za-z0-9_]*)\s*=\s*(.*)$/);
+        if (varMatch) {
+          const badge = document.createElement('span');
+          badge.className = 'status-badge badge-variable';
+          badge.textContent = 'variable';
+          lineRow.appendChild(badge);
+
+          const exprEl = document.createElement('span');
+          exprEl.className = 'entry-expr';
+          exprEl.textContent = expr + (inlineComment ? '  ' + inlineComment : '');
+          lineRow.appendChild(exprEl);
+
+          el.appendChild(lineRow);
+          container.appendChild(el);
+          return;
+        }
+
+        // Show expression
+        const exprEl = document.createElement('span');
+        exprEl.className = 'entry-expr';
+        exprEl.textContent = expr + (inlineComment ? '  ' + inlineComment : '');
+        lineRow.appendChild(exprEl);
+        el.appendChild(lineRow);
+
+        // Parse
+        let parsed;
+        try {
+          parsed = parseCronExpr(expr, useSeconds);
+        } catch (e) {
+          const statusRow = document.createElement('div');
+          statusRow.className = 'entry-line';
+          const badge = document.createElement('span');
+          badge.className = 'status-badge badge-invalid';
+          badge.textContent = 'invalid';
+          statusRow.appendChild(badge);
+          const errEl = document.createElement('span');
+          errEl.className = 'entry-error';
+          errEl.textContent = e.message;
+          statusRow.appendChild(errEl);
+          el.appendChild(statusRow);
+          container.appendChild(el);
+          return;
+        }
+
+        // @reboot
+        if (parsed.reboot) {
+          const statusRow = document.createElement('div');
+          statusRow.className = 'entry-line';
+          const badge = document.createElement('span');
+          badge.className = 'status-badge badge-reboot';
+          badge.textContent = '@reboot';
+          statusRow.appendChild(badge);
+          const descEl = document.createElement('span');
+          descEl.className = 'entry-desc';
+          descEl.textContent = 'Runs once on system startup';
+          statusRow.appendChild(descEl);
+          el.appendChild(statusRow);
+          if (parsed.command) {
+            const cmdEl = document.createElement('div');
+            cmdEl.className = 'entry-command';
+            cmdEl.textContent = '$ ' + parsed.command;
+            el.appendChild(cmdEl);
+          }
+          container.appendChild(el);
+          return;
+        }
+
+        // Valid — description
+        const statusRow = document.createElement('div');
+        statusRow.className = 'entry-line';
+        const badge = document.createElement('span');
+        badge.className = 'status-badge badge-valid';
+        badge.textContent = 'valid';
+        statusRow.appendChild(badge);
+
+        let desc = '';
+        try {
+          desc = describeExpr(expr, useSeconds, use24h);
+        } catch (_) {
+          desc = '—';
+        }
+        const descEl = document.createElement('span');
+        descEl.className = 'entry-desc';
+        descEl.textContent = desc;
+        statusRow.appendChild(descEl);
+        el.appendChild(statusRow);
+
+        // Command
+        if (parsed.command) {
+          const cmdEl = document.createElement('div');
+          cmdEl.className = 'entry-command';
+          cmdEl.textContent = '$ ' + parsed.command;
+          el.appendChild(cmdEl);
+        }
+
+        // Next runs
+        const runsLabel = document.createElement('div');
+        runsLabel.className = 'runs-label';
+        runsLabel.textContent = `Next ${runCount} run${runCount !== 1 ? 's' : ''}`;
+        el.appendChild(runsLabel);
+
+        let runs = [];
+        try {
+          runs = getNextRuns(parsed, runCount, useSeconds);
+        } catch (_) {}
+
+        const runsList = document.createElement('div');
+        runsList.className = 'runs-list';
+
+        if (runs.length === 0) {
+          const ri = document.createElement('div');
+          ri.className = 'run-item';
+          ri.style.color = 'var(--text-dim)';
+          ri.textContent = 'No upcoming runs found within the next year';
+          runsList.appendChild(ri);
+        } else {
+          runs.forEach(r => {
+            const ri = document.createElement('div');
+            ri.className = 'run-item';
+            ri.textContent = formatRunDate(r, use24h);
+            runsList.appendChild(ri);
+          });
+        }
+
+        el.appendChild(runsList);
+        container.appendChild(el);
+      });
+
+      if (!hasContent) {
+        container.innerHTML = '<div class="empty-state">Enter cron expressions above to see analysis.</div>';
+      }
+    }
+
+    // ── Copy ───────────────────────────────────────────────────────────────
+    document.getElementById('copy-btn').addEventListener('click', () => {
+      const container = document.getElementById('analysis');
+      const lines = [];
+      container.querySelectorAll('.entry').forEach(entry => {
+        const parts = [];
+        entry.querySelectorAll('.entry-expr, .entry-comment, .entry-desc, .entry-error, .run-item, .runs-label')
+          .forEach(el => {
+            const text = el.textContent.trim();
+            if (text) parts.push(text);
+          });
+        if (parts.length) lines.push(parts.join('\n'));
+      });
+      const text = lines.join('\n\n');
+      if (!text) return;
+      navigator.clipboard.writeText(text).then(() => {
+        const btn = document.getElementById('copy-btn');
+        btn.textContent = 'Copied!';
+        btn.classList.add('copied');
+        setTimeout(() => { btn.textContent = 'Copy'; btn.classList.remove('copied'); }, 1500);
+      });
+    });
+
+    // ── Options field-hint update ──────────────────────────────────────────
+    function updateFieldHint() {
+      const useSeconds = document.getElementById('use-seconds').checked;
+      document.getElementById('field-hint').textContent = useSeconds
+        ? '6 fields: sec min hr dom mon dow'
+        : '5 fields: min hr dom mon dow';
+    }
+
+    // ── Presets ────────────────────────────────────────────────────────────
+    function buildPresets() {
+      const list = document.getElementById('preset-list');
+      PRESETS.forEach(p => {
+        const btn = document.createElement('button');
+        btn.className = 'preset-btn';
+        btn.innerHTML = `<span class="preset-name">${p.name}</span><span class="preset-expr">${p.expr}</span>`;
+        btn.addEventListener('click', () => {
+          const ta = document.getElementById('cron-input');
+          const val = ta.value;
+          const sep = val && !val.endsWith('\n') ? '\n' : '';
+          ta.value = val + sep + p.expr;
+          ta.focus();
+          renderOutput();
+        });
+        list.appendChild(btn);
+      });
+    }
+
+    // ── Timezone display ───────────────────────────────────────────────────
+    function showTimezone() {
+      try {
+        const tz = Intl.DateTimeFormat().resolvedOptions().timeZone;
+        const offset = -new Date().getTimezoneOffset();
+        const sign = offset >= 0 ? '+' : '-';
+        const abs = Math.abs(offset);
+        const hh = String(Math.floor(abs / 60)).padStart(2, '0');
+        const mm = String(abs % 60).padStart(2, '0');
+        document.getElementById('tz-display').textContent = `${tz} (UTC${sign}${hh}:${mm})`;
+      } catch (_) {
+        document.getElementById('tz-display').textContent = 'Local time';
+      }
+    }
+
+    // ── Wire up events ─────────────────────────────────────────────────────
+    document.getElementById('cron-input').addEventListener('input', renderOutput);
+    document.getElementById('use-seconds').addEventListener('change', () => { updateFieldHint(); renderOutput(); });
+    document.getElementById('use-24h').addEventListener('change', renderOutput);
+    document.getElementById('run-count').addEventListener('input', renderOutput);
+
+    // ── Theme toggle ───────────────────────────────────────────────────────
+    const SUN_SVG = `<svg width="15" height="15" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round"><circle cx="12" cy="12" r="5"/><line x1="12" y1="1" x2="12" y2="3"/><line x1="12" y1="21" x2="12" y2="23"/><line x1="4.22" y1="4.22" x2="5.64" y2="5.64"/><line x1="18.36" y1="18.36" x2="19.78" y2="19.78"/><line x1="1" y1="12" x2="3" y2="12"/><line x1="21" y1="12" x2="23" y2="12"/><line x1="4.22" y1="19.78" x2="5.64" y2="18.36"/><line x1="18.36" y1="5.64" x2="19.78" y2="4.22"/></svg>`;
+    const MOON_SVG = `<svg width="15" height="15" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round"><path d="M21 12.79A9 9 0 1 1 11.21 3 7 7 0 0 0 21 12.79z"/></svg>`;
+    const toggleBtn = document.getElementById('theme-toggle');
+    function applyTheme(theme) {
+      document.documentElement.dataset.theme = theme;
+      localStorage.setItem('utils-theme', theme);
+      const isDark = theme === 'dark';
+      toggleBtn.innerHTML = isDark ? SUN_SVG : MOON_SVG;
+      toggleBtn.setAttribute('aria-label', isDark ? 'Switch to light mode' : 'Switch to dark mode');
+      toggleBtn.setAttribute('title',      isDark ? 'Switch to light mode' : 'Switch to dark mode');
+    }
+    toggleBtn.addEventListener('click', () => {
+      applyTheme(document.documentElement.dataset.theme === 'dark' ? 'light' : 'dark');
+    });
+    applyTheme(document.documentElement.dataset.theme);
+
+    // ── Init ───────────────────────────────────────────────────────────────
+    buildPresets();
+    showTimezone();
+    renderOutput();
+  </script>
+</body>
+</html>

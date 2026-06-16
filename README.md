@@ -7,7 +7,7 @@ A self-hosted collection of browser-based utilities for common text and data tas
 
 ## Intent
 
-Provide a fast, offline-capable toolbox for day-to-day developer text operations. All processing runs in the browser; nothing is sent to a server. All you have to do is to download the HTML files and open them locally.
+Provide a fast, offline-capable toolbox for day-to-day developer text operations. All processing runs in the browser; nothing is sent to a server. All files live in the repository root and are served directly via GitHub Pages.
 
 
 ## Structure
@@ -21,7 +21,8 @@ password.html       Random password generator
 colorpicker.html    Color picker with format conversions and tools
 regex.html          Regex tester with match visualization and premade patterns
 permissions.html    Linux file permission builder and decoder
-Notes.md            This file
+cron.html           Cron expression validator, explainer, and scheduler
+README.md           This file
 ```
 
 
@@ -233,12 +234,38 @@ Processing pipeline order: trim → remove empty → deduplicate → sort → ca
 
 ---
 
+### Cron (`cron.html`)
+
+**Implemented:**
+- **Multi-line crontab input** — each line is a cron entry, variable definition, blank line, or comment (`#`)
+- **Live validation** — per-line status badge (Valid / Invalid / Variable / Comment / @reboot)
+- **Variable definitions** — lines like `SHELL=/bin/bash`, `MAILTO=root`, `PATH=…` are detected and shown with a Variable badge
+- **Commands** — the command after the schedule fields (e.g. `0 * * * * /usr/bin/backup.sh`) is parsed and displayed below the description
+- **Plain-English explanation** — human-readable description for each valid expression (e.g. `0 9 * * 1-5` → "At 09:00, on weekdays (Mon–Fri)")
+- **Next N run times** — configurable 1–20 upcoming scheduled times in the browser's local timezone
+- **5-field and 6-field (with seconds) modes** — toggle between standard and extended cron
+- **24h / 12h time display** — toggle for time formatting in explanations and run times
+- **Special strings** — `@yearly`, `@annually`, `@monthly`, `@weekly`, `@daily`, `@midnight`, `@hourly`, `@reboot`
+- **Named values** — month names (jan–dec) and day names (sun–sat) in any field
+- **Full field syntax** — `*`, single values, ranges (`1-5`), steps (`*/5`, `1-6/2`), and comma-separated lists
+- **Inline comments** — expressions like `0 2 * * * # nightly backup` are parsed and displayed correctly
+- **16 preset patterns** — from "Every minute" to "Yearly (Jan 1st)"; click to append to the input
+- **Copy** — copies the full analysis (descriptions + next runs) to the clipboard
+
+**Planned:**
+- Replace mode — substitute matches and preview the output crontab
+- Timezone selector — show next runs in a chosen timezone
+- Export next runs as plain text or CSV
+- Umask-style: show what changed vs. default
+
+---
+
 ## Planned utilities
-- XML
+- XML, YAML, TOML, CSV
 - URL, email, phone (validator, formatter and sorter)
 - Templater (Apply a template to a given dataset (simple: replace keyword in a text with attributes form input. advanced: create tables from a large dataset))
 - Table (create a dynamic table with sortable columns and search filters based on a json input)
-- Cron (validation, explanation, etc. multiple tasks)
+- Save settings and input to local storage
 
 ---
 

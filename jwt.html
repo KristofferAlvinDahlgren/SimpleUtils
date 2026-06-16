@@ -1,0 +1,713 @@
+<!DOCTYPE html>
+<html lang="en" data-theme="dark">
+<head>
+  <meta charset="UTF-8">
+  <meta name="viewport" content="width=device-width, initial-scale=1.0">
+  <title>JWT — Utils</title>
+  <script>
+    (function () {
+      const saved = localStorage.getItem('utils-theme');
+      const preferred = saved || (window.matchMedia('(prefers-color-scheme: light)').matches ? 'light' : 'dark');
+      document.documentElement.dataset.theme = preferred;
+    })();
+  </script>
+  <style>
+    *, *::before, *::after { box-sizing: border-box; margin: 0; padding: 0; }
+    :root {
+      --bg: #1e1e1e; --surface: #252526; --surface-hover: #2a2d2e;
+      --surface-deep: #222222;
+      --border: #3c3c3c; --accent: #0078d4; --accent-hover: #106ebe;
+      --text: #d4d4d4; --text-dim: #888;
+      --mono: 'Cascadia Code', Consolas, 'Courier New', monospace;
+      --r: 5px;
+      --success: #4ec9b0; --warn: #dcdcaa; --error: #f44747;
+      /* JWT part colors */
+      --jwt-h: #569cd6;
+      --jwt-p: #4ec9b0;
+      --jwt-s: #ce9178;
+      /* JSON syntax colors */
+      --json-key:  #9cdcfe;
+      --json-str:  #ce9178;
+      --json-num:  #b5cea8;
+      --json-bool: #569cd6;
+      --json-null: #888;
+    }
+    [data-theme="light"] {
+      --bg: #f8f8f8; --surface: #ffffff; --surface-hover: #f0f0f0;
+      --surface-deep: #ebebeb;
+      --border: #d0d0d0; --accent: #0078d4; --accent-hover: #106ebe;
+      --text: #1f1f1f; --text-dim: #767676;
+      --success: #0e7a6e; --warn: #7a6400; --error: #c72e2e;
+      --jwt-h: #0000ff;
+      --jwt-p: #0e7a6e;
+      --jwt-s: #a31515;
+      --json-key:  #001080;
+      --json-str:  #a31515;
+      --json-num:  #098658;
+      --json-bool: #0000ff;
+      --json-null: #767676;
+    }
+
+    body {
+      font-family: -apple-system, BlinkMacSystemFont, 'Segoe UI', sans-serif;
+      background: var(--bg); color: var(--text);
+      height: 100vh; display: grid; grid-template-rows: auto 1fr; overflow: hidden;
+    }
+
+    /* ── Header ─────────────────────────────────────────────────────────── */
+    header {
+      display: flex; align-items: center; gap: 16px;
+      padding: 0 20px; height: 48px; border-bottom: 1px solid var(--border);
+      flex-shrink: 0;
+    }
+    header a { color: var(--text-dim); text-decoration: none; font-size: 0.82rem; }
+    header a:hover { color: var(--text); }
+    header h1 { font-size: 1rem; font-weight: 600; }
+    .header-spacer { flex: 1; }
+    .theme-toggle {
+      display: flex; align-items: center; justify-content: center;
+      width: 30px; height: 30px; padding: 0;
+      border: 1px solid var(--border); border-radius: var(--r);
+      background: transparent; color: var(--text-dim);
+      cursor: pointer; flex-shrink: 0;
+      transition: background 0.15s, color 0.15s, border-color 0.15s;
+    }
+    .theme-toggle:hover { background: var(--surface-hover); color: var(--text); border-color: var(--accent); }
+    .theme-toggle svg { display: block; pointer-events: none; }
+
+    /* ── 3-column layout ────────────────────────────────────────────────── */
+    main {
+      display: grid; grid-template-columns: 1fr 240px 1fr;
+      min-height: 0; overflow: hidden;
+    }
+
+    .label {
+      font-size: 0.68rem; font-weight: 700; text-transform: uppercase;
+      letter-spacing: 0.1em; color: var(--text-dim); flex-shrink: 0;
+    }
+
+    /* ── Left panel ─────────────────────────────────────────────────────── */
+    .left-panel {
+      display: flex; flex-direction: column;
+      padding: 14px; gap: 10px; min-height: 0; overflow: hidden;
+      border-right: 1px solid var(--border);
+    }
+
+    textarea {
+      flex: 0 0 auto; height: 100px; resize: none;
+      background: var(--surface); border: 1px solid var(--border);
+      border-radius: var(--r); color: var(--text);
+      font-family: var(--mono); font-size: 0.82rem; line-height: 1.55;
+      padding: 10px 12px; outline: none; transition: border-color 0.15s;
+    }
+    textarea:focus { border-color: var(--accent); }
+    textarea.valid   { border-color: var(--success); }
+    textarea.invalid { border-color: var(--error); }
+    textarea::placeholder { color: var(--text-dim); }
+
+    /* Visual breakdown */
+    .breakdown-wrap {
+      flex: 1; min-height: 0; overflow-y: auto;
+      background: var(--surface); border: 1px solid var(--border);
+      border-radius: var(--r); padding: 10px 12px;
+      display: flex; flex-direction: column; gap: 10px;
+    }
+    .breakdown-token {
+      font-family: var(--mono); font-size: 0.78rem; line-height: 1.75;
+      word-break: break-all;
+    }
+    .jwt-h   { color: var(--jwt-h); }
+    .jwt-p   { color: var(--jwt-p); }
+    .jwt-s   { color: var(--jwt-s); }
+    .jwt-dot { color: var(--text-dim); }
+
+    .breakdown-legend {
+      display: none; flex-wrap: wrap; gap: 12px;
+      border-top: 1px solid var(--border); padding-top: 8px;
+    }
+    .legend-item {
+      display: flex; align-items: center; gap: 5px;
+      font-size: 0.75rem; color: var(--text-dim);
+    }
+    .legend-dot { width: 8px; height: 8px; border-radius: 50%; flex-shrink: 0; }
+
+    /* ── Middle options panel ───────────────────────────────────────────── */
+    .options-panel {
+      display: flex; flex-direction: column; gap: 14px;
+      padding: 14px; overflow-y: auto; min-height: 0;
+      border-right: 1px solid var(--border);
+    }
+    .opt-group { display: flex; flex-direction: column; gap: 8px; }
+    .opt-title {
+      font-size: 0.68rem; font-weight: 700; text-transform: uppercase;
+      letter-spacing: 0.1em; color: var(--text-dim);
+      border-bottom: 1px solid var(--border); padding-bottom: 5px;
+    }
+    .opt-row {
+      display: flex; align-items: center; justify-content: space-between;
+      gap: 8px; font-size: 0.83rem;
+    }
+    .opt-row label { cursor: pointer; user-select: none; }
+    input[type="checkbox"] {
+      width: 14px; height: 14px; cursor: pointer;
+      accent-color: var(--accent); flex-shrink: 0;
+    }
+    input[type="password"] {
+      width: 100%; padding: 6px 9px;
+      background: var(--surface); border: 1px solid var(--border);
+      border-radius: var(--r); color: var(--text);
+      font-family: var(--mono); font-size: 0.82rem; outline: none;
+      transition: border-color 0.15s;
+    }
+    input[type="password"]:focus { border-color: var(--accent); }
+
+    .alg-info {
+      font-size: 0.75rem; color: var(--text-dim); font-family: var(--mono);
+      padding: 3px 0;
+    }
+
+    .verify-status {
+      font-size: 0.78rem; padding: 5px 9px;
+      border-radius: var(--r); display: none;
+    }
+    .verify-status.valid   { background: color-mix(in srgb, var(--success) 15%, transparent); color: var(--success); display: block; }
+    .verify-status.invalid { background: color-mix(in srgb, var(--error)   15%, transparent); color: var(--error);   display: block; }
+    .verify-status.warn    { background: color-mix(in srgb, var(--warn)    15%, transparent); color: var(--warn);    display: block; }
+
+    /* ── Right analysis panel ───────────────────────────────────────────── */
+    .right-panel {
+      display: flex; flex-direction: column;
+      padding: 14px; gap: 10px; min-height: 0; overflow: hidden;
+    }
+    .panel-top {
+      display: flex; align-items: center; gap: 10px; flex-shrink: 0;
+    }
+    .btn {
+      padding: 5px 14px;
+      background: var(--surface); border: 1px solid var(--border); border-radius: var(--r);
+      color: var(--text); font-size: 0.82rem; cursor: pointer;
+      transition: background 0.12s, border-color 0.12s;
+    }
+    .btn:hover { background: var(--surface-hover); border-color: var(--accent); }
+    .btn.copied { border-color: var(--success); color: var(--success); }
+
+    .analysis-scroll {
+      flex: 1; min-height: 0; overflow-y: auto;
+      display: flex; flex-direction: column; gap: 10px;
+    }
+
+    /* ── Sections ───────────────────────────────────────────────────────── */
+    .section {
+      background: var(--surface); border: 1px solid var(--border);
+      border-radius: var(--r); flex-shrink: 0; overflow: hidden;
+    }
+    .section-header {
+      display: flex; align-items: center; gap: 8px;
+      padding: 6px 12px;
+      border-bottom: 1px solid var(--border);
+      background: var(--surface-deep);
+    }
+    .section-title {
+      font-size: 0.68rem; font-weight: 700; text-transform: uppercase;
+      letter-spacing: 0.1em; color: var(--text-dim); flex: 1;
+    }
+    .sec-badge {
+      font-size: 0.68rem; font-weight: 700; padding: 1px 7px;
+      border-radius: 3px; text-transform: uppercase; letter-spacing: 0.05em;
+    }
+    .sec-badge.valid   { background: color-mix(in srgb, var(--success) 15%, transparent); color: var(--success); }
+    .sec-badge.invalid { background: color-mix(in srgb, var(--error)   15%, transparent); color: var(--error);   }
+    .sec-badge.noexp   { background: color-mix(in srgb, var(--text-dim) 12%, transparent); color: var(--text-dim); }
+    .section-body { padding: 10px 12px; }
+
+    /* ── Claims table ───────────────────────────────────────────────────── */
+    .claims-table {
+      width: 100%; border-collapse: collapse; font-size: 0.8rem;
+    }
+    .claims-table td {
+      padding: 4px 6px; vertical-align: top;
+    }
+    .claims-table tr:not(:last-child) td {
+      border-bottom: 1px solid color-mix(in srgb, var(--border) 50%, transparent);
+    }
+    .td-key  { font-family: var(--mono); color: var(--accent); white-space: nowrap; width: 1%; }
+    .td-name { color: var(--text-dim); font-size: 0.73rem; white-space: nowrap; width: 1%; padding-left: 10px !important; }
+    .td-val  { font-family: var(--mono); word-break: break-all; }
+    .td-meta { font-size: 0.73rem; white-space: nowrap; width: 1%; padding-left: 10px !important; }
+    .td-meta.expired { color: var(--error); }
+    .td-meta.active  { color: var(--success); }
+    .td-meta.pending { color: var(--warn); }
+    .td-meta.dim     { color: var(--text-dim); }
+
+    /* ── JSON block ─────────────────────────────────────────────────────── */
+    pre.json-block {
+      font-family: var(--mono); font-size: 0.78rem; line-height: 1.6;
+      background: var(--surface-deep); border-radius: 3px;
+      padding: 8px 10px; overflow-x: auto; margin-top: 8px;
+      white-space: pre-wrap; word-break: break-all;
+    }
+    .json-key  { color: var(--json-key); }
+    .json-str  { color: var(--json-str); }
+    .json-num  { color: var(--json-num); }
+    .json-bool { color: var(--json-bool); }
+    .json-null { color: var(--json-null); }
+
+    /* ── Signature ──────────────────────────────────────────────────────── */
+    .sig-bytes {
+      font-family: var(--mono); font-size: 0.72rem; color: var(--jwt-s);
+      word-break: break-all; line-height: 1.7;
+    }
+    .sig-meta {
+      font-size: 0.75rem; color: var(--text-dim); margin-top: 4px;
+    }
+
+    .empty-state {
+      color: var(--text-dim); font-size: 0.83rem; font-style: italic;
+    }
+
+    /* scrollbars */
+    .analysis-scroll::-webkit-scrollbar,
+    .options-panel::-webkit-scrollbar,
+    .breakdown-wrap::-webkit-scrollbar { width: 6px; }
+    .analysis-scroll::-webkit-scrollbar-track,
+    .options-panel::-webkit-scrollbar-track,
+    .breakdown-wrap::-webkit-scrollbar-track { background: transparent; }
+    .analysis-scroll::-webkit-scrollbar-thumb,
+    .options-panel::-webkit-scrollbar-thumb,
+    .breakdown-wrap::-webkit-scrollbar-thumb { background: var(--border); border-radius: 3px; }
+  </style>
+</head>
+<body>
+  <header>
+    <a href="index.html">← Utils</a>
+    <h1>JWT</h1>
+    <div class="header-spacer"></div>
+    <button class="theme-toggle" id="theme-toggle" aria-label="Toggle theme" title="Toggle theme"></button>
+  </header>
+
+  <main>
+    <!-- ── Left: Token input + visual breakdown ─────────────────────────── -->
+    <div class="left-panel">
+      <span class="label">Token</span>
+      <textarea id="jwt-input" spellcheck="false"
+        placeholder="Paste a JWT token here…"></textarea>
+
+      <span class="label">Decoded structure</span>
+      <div class="breakdown-wrap">
+        <div class="breakdown-token" id="breakdown-token">
+          <span style="color:var(--text-dim);font-size:0.78rem;font-style:italic;">Paste a token above</span>
+        </div>
+        <div class="breakdown-legend" id="breakdown-legend">
+          <span class="legend-item"><span class="legend-dot" style="background:var(--jwt-h)"></span>Header</span>
+          <span class="legend-item"><span class="legend-dot" style="background:var(--jwt-p)"></span>Payload</span>
+          <span class="legend-item"><span class="legend-dot" style="background:var(--jwt-s)"></span>Signature</span>
+        </div>
+      </div>
+    </div>
+
+    <!-- ── Middle: Options ─────────────────────────────────────────────── -->
+    <div class="options-panel">
+
+      <div class="opt-group">
+        <div class="opt-title">Display</div>
+        <div class="opt-row">
+          <label for="show-raw">Show raw JSON</label>
+          <input type="checkbox" id="show-raw">
+        </div>
+        <div class="opt-row">
+          <label for="show-claim-desc">Claim descriptions</label>
+          <input type="checkbox" id="show-claim-desc" checked>
+        </div>
+      </div>
+
+      <div class="opt-group">
+        <div class="opt-title">Verify Signature</div>
+        <div class="opt-row">
+          <label for="do-verify">Verify HMAC</label>
+          <input type="checkbox" id="do-verify">
+        </div>
+        <div id="verify-inputs" style="display:none; flex-direction:column; gap:6px;">
+          <div class="alg-info" id="alg-info"></div>
+          <input type="password" id="hmac-secret" placeholder="Secret key (UTF-8)…" autocomplete="off">
+          <div class="verify-status" id="verify-status"></div>
+        </div>
+      </div>
+
+    </div>
+
+    <!-- ── Right: Analysis ─────────────────────────────────────────────── -->
+    <div class="right-panel">
+      <div class="panel-top">
+        <span class="label">Analysis</span>
+        <button class="btn" id="copy-btn">Copy</button>
+      </div>
+      <div class="analysis-scroll" id="analysis">
+        <div class="empty-state">Paste a JWT token to decode it.</div>
+      </div>
+    </div>
+  </main>
+
+  <script>
+    // ── Metadata ───────────────────────────────────────────────────────────
+    const CLAIM_INFO = {
+      iss: 'Issuer',
+      sub: 'Subject',
+      aud: 'Audience',
+      exp: 'Expires',
+      nbf: 'Not Before',
+      iat: 'Issued At',
+      jti: 'JWT ID',
+    };
+
+    const HMAC_ALGS = {
+      HS256: 'SHA-256',
+      HS384: 'SHA-384',
+      HS512: 'SHA-512',
+    };
+
+    // ── Helpers ────────────────────────────────────────────────────────────
+    function escHtml(s) {
+      return String(s)
+        .replace(/&/g, '&amp;')
+        .replace(/</g, '&lt;')
+        .replace(/>/g, '&gt;')
+        .replace(/"/g, '&quot;');
+    }
+
+    function b64urlToStr(s) {
+      s = s.replace(/-/g, '+').replace(/_/g, '/');
+      while (s.length % 4) s += '=';
+      try { return decodeURIComponent(escape(atob(s))); }
+      catch { return atob(s); }
+    }
+
+    function b64urlToBytes(s) {
+      s = s.replace(/-/g, '+').replace(/_/g, '/');
+      while (s.length % 4) s += '=';
+      const bin = atob(s);
+      return Uint8Array.from(bin, c => c.charCodeAt(0));
+    }
+
+    function bytesToHex(bytes) {
+      return Array.from(bytes).map(b => b.toString(16).padStart(2, '0')).join(' ');
+    }
+
+    function relTime(ts) {
+      const now = Math.floor(Date.now() / 1000);
+      const diff = ts - now;
+      const abs = Math.abs(diff);
+      let value, unit;
+      if      (abs < 60)           { value = abs;                           unit = 'second'; }
+      else if (abs < 3600)         { value = Math.floor(abs / 60);          unit = 'minute'; }
+      else if (abs < 86400)        { value = Math.floor(abs / 3600);        unit = 'hour';   }
+      else if (abs < 86400 * 30)   { value = Math.floor(abs / 86400);       unit = 'day';    }
+      else if (abs < 86400 * 365)  { value = Math.floor(abs / (86400 * 30)); unit = 'month'; }
+      else                         { value = Math.floor(abs / (86400 * 365)); unit = 'year'; }
+      const str = `${value} ${unit}${value !== 1 ? 's' : ''}`;
+      return diff < 0 ? `${str} ago` : `in ${str}`;
+    }
+
+    function fmtUnix(ts) {
+      return new Date(ts * 1000).toLocaleString();
+    }
+
+    // Safe JSON syntax highlighting — escapes unmatched parts individually
+    function highlightJSON(json) {
+      const re = /("(?:\\u[a-fA-F0-9]{4}|\\[^u]|[^\\"])*"(\s*:)?|\b(?:true|false|null)\b|-?\d+(?:\.\d*)?(?:[eE][+\-]?\d+)?)/g;
+      const out = [];
+      let last = 0;
+      let m;
+      while ((m = re.exec(json)) !== null) {
+        if (m.index > last) out.push(escHtml(json.slice(last, m.index)));
+        const tok = m[0];
+        let cls;
+        if (/^"/.test(tok))         cls = /:$/.test(tok) ? 'json-key' : 'json-str';
+        else if (/^(true|false)$/.test(tok)) cls = 'json-bool';
+        else if (tok === 'null')    cls = 'json-null';
+        else                        cls = 'json-num';
+        out.push(`<span class="${cls}">${escHtml(tok)}</span>`);
+        last = m.index + tok.length;
+      }
+      if (last < json.length) out.push(escHtml(json.slice(last)));
+      return out.join('');
+    }
+
+    // ── JWT parser ─────────────────────────────────────────────────────────
+    function parseJWT(token) {
+      const parts = token.trim().split('.');
+      if (parts.length !== 3)
+        throw new Error(`Expected 3 parts (header.payload.signature), got ${parts.length}`);
+
+      let headerStr, payloadStr;
+      try { headerStr = b64urlToStr(parts[0]); }
+      catch { throw new Error('Header is not valid base64url'); }
+      try { payloadStr = b64urlToStr(parts[1]); }
+      catch { throw new Error('Payload is not valid base64url'); }
+
+      let header, payload;
+      try { header = JSON.parse(headerStr); }
+      catch { throw new Error('Header is not valid JSON'); }
+      try { payload = JSON.parse(payloadStr); }
+      catch { throw new Error('Payload is not valid JSON'); }
+
+      return { parts, header, payload };
+    }
+
+    // ── HMAC verification ──────────────────────────────────────────────────
+    async function verifyHMAC(parts, secret, hashAlg) {
+      const enc = new TextEncoder();
+      const key = await crypto.subtle.importKey(
+        'raw', enc.encode(secret),
+        { name: 'HMAC', hash: hashAlg }, false, ['verify']
+      );
+      return await crypto.subtle.verify(
+        'HMAC', key, b64urlToBytes(parts[2]), enc.encode(`${parts[0]}.${parts[1]}`)
+      );
+    }
+
+    // ── DOM helpers ────────────────────────────────────────────────────────
+    function makeSection(title, badgeHtml, bodyHtml) {
+      const el = document.createElement('div');
+      el.className = 'section';
+      el.innerHTML = `
+        <div class="section-header">
+          <span class="section-title">${escHtml(title)}</span>
+          ${badgeHtml}
+        </div>
+        <div class="section-body">${bodyHtml}</div>`;
+      return el;
+    }
+
+    function claimsTableHTML(obj, showDesc) {
+      const now = Math.floor(Date.now() / 1000);
+      let html = '<table class="claims-table">';
+      for (const [k, v] of Object.entries(obj)) {
+        const isTimestamp = (k === 'exp' || k === 'nbf' || k === 'iat') && typeof v === 'number';
+        const rawDisplay  = typeof v === 'object' ? JSON.stringify(v) : String(v);
+        const displayVal  = isTimestamp ? fmtUnix(v) : rawDisplay;
+
+        let metaCls = 'dim', metaTxt = '';
+        if (k === 'exp' && isTimestamp) {
+          const expired = now > v;
+          metaCls = expired ? 'expired' : 'active';
+          metaTxt = relTime(v);
+        } else if (k === 'nbf' && isTimestamp) {
+          const pending = now < v;
+          metaCls = pending ? 'pending' : 'dim';
+          metaTxt = relTime(v);
+        } else if (k === 'iat' && isTimestamp) {
+          metaTxt = relTime(v);
+        }
+
+        const nameCell = (showDesc && CLAIM_INFO[k])
+          ? `<td class="td-name">${escHtml(CLAIM_INFO[k])}</td>`
+          : '<td></td>';
+
+        html += `<tr>
+          <td class="td-key">${escHtml(k)}</td>
+          ${nameCell}
+          <td class="td-val">${escHtml(displayVal)}</td>
+          <td class="td-meta ${metaCls}">${escHtml(metaTxt)}</td>
+        </tr>`;
+      }
+      return html + '</table>';
+    }
+
+    // ── Main render ────────────────────────────────────────────────────────
+    let currentParsed = null;
+
+    function renderOutput() {
+      const raw         = document.getElementById('jwt-input').value.trim();
+      const showRaw     = document.getElementById('show-raw').checked;
+      const showDesc    = document.getElementById('show-claim-desc').checked;
+      const container   = document.getElementById('analysis');
+      const tokenEl     = document.getElementById('breakdown-token');
+      const legendEl    = document.getElementById('breakdown-legend');
+      const inputEl     = document.getElementById('jwt-input');
+
+      container.innerHTML = '';
+      currentParsed = null;
+
+      if (!raw) {
+        inputEl.className = '';
+        tokenEl.innerHTML = '<span style="color:var(--text-dim);font-size:0.78rem;font-style:italic;">Paste a token above</span>';
+        legendEl.style.display = 'none';
+        container.innerHTML = '<div class="empty-state">Paste a JWT token to decode it.</div>';
+        return;
+      }
+
+      let parsed;
+      try { parsed = parseJWT(raw); }
+      catch (e) {
+        inputEl.className = 'invalid';
+        tokenEl.innerHTML = `<span style="color:var(--error);font-size:0.78rem;">${escHtml(e.message)}</span>`;
+        legendEl.style.display = 'none';
+        container.innerHTML = `<div class="empty-state" style="color:var(--error);">${escHtml(e.message)}</div>`;
+        return;
+      }
+
+      inputEl.className = 'valid';
+      currentParsed = parsed;
+
+      // Colored token breakdown
+      tokenEl.innerHTML =
+        `<span class="jwt-h">${escHtml(parsed.parts[0])}</span>` +
+        `<span class="jwt-dot">.</span>` +
+        `<span class="jwt-p">${escHtml(parsed.parts[1])}</span>` +
+        `<span class="jwt-dot">.</span>` +
+        `<span class="jwt-s">${escHtml(parsed.parts[2])}</span>`;
+      legendEl.style.display = 'flex';
+
+      // ── Header section ───────────────────────────────────────────────────
+      const alg = parsed.header.alg || '—';
+      const algBadgeColor = HMAC_ALGS[alg] ? 'var(--jwt-h)' : 'var(--warn)';
+      let headerBody = claimsTableHTML(parsed.header, false);
+      if (showRaw) headerBody += `<pre class="json-block">${highlightJSON(JSON.stringify(parsed.header, null, 2))}</pre>`;
+      container.appendChild(makeSection('Header',
+        `<span class="sec-badge" style="background:color-mix(in srgb,${algBadgeColor} 15%,transparent);color:${algBadgeColor};">${escHtml(alg)}</span>`,
+        headerBody));
+
+      // ── Payload section ──────────────────────────────────────────────────
+      const now = Math.floor(Date.now() / 1000);
+      const exp = parsed.payload.exp;
+      let payloadBadge;
+      if (exp !== undefined) {
+        const expired = now > exp;
+        payloadBadge = `<span class="sec-badge ${expired ? 'invalid' : 'valid'}">${expired ? 'Expired' : 'Valid'}</span>`;
+      } else {
+        payloadBadge = `<span class="sec-badge noexp">No expiry</span>`;
+      }
+      let payloadBody = claimsTableHTML(parsed.payload, showDesc);
+      if (showRaw) payloadBody += `<pre class="json-block">${highlightJSON(JSON.stringify(parsed.payload, null, 2))}</pre>`;
+      container.appendChild(makeSection('Payload', payloadBadge, payloadBody));
+
+      // ── Signature section ────────────────────────────────────────────────
+      const sigBytes = b64urlToBytes(parsed.parts[2]);
+      const sigHex   = bytesToHex(sigBytes);
+      const sigBody  =
+        `<div class="sig-bytes">${escHtml(sigHex)}</div>` +
+        `<div class="sig-meta">${sigBytes.length * 8} bits &nbsp;·&nbsp; ${sigBytes.length} bytes</div>`;
+      container.appendChild(makeSection('Signature',
+        `<span class="sec-badge" style="background:color-mix(in srgb,var(--jwt-s) 15%,transparent);color:var(--jwt-s);">${escHtml(parsed.parts[2].length)} chars</span>`,
+        sigBody));
+
+      // Update verify panel
+      updateAlgInfo(alg);
+      if (document.getElementById('do-verify').checked) triggerVerify();
+    }
+
+    // ── Verify panel ───────────────────────────────────────────────────────
+    function updateAlgInfo(alg) {
+      const algInfoEl  = document.getElementById('alg-info');
+      const secretEl   = document.getElementById('hmac-secret');
+      const statusEl   = document.getElementById('verify-status');
+
+      if (HMAC_ALGS[alg]) {
+        algInfoEl.textContent = `HMAC / ${HMAC_ALGS[alg]}`;
+        secretEl.disabled     = false;
+        secretEl.placeholder  = 'Secret key (UTF-8)…';
+        // Reset status so it re-evaluates
+        statusEl.className = 'verify-status';
+      } else if (alg && alg !== '—') {
+        algInfoEl.textContent = `${alg} (asymmetric — not supported)`;
+        secretEl.disabled     = true;
+        statusEl.className    = 'verify-status warn';
+        statusEl.textContent  = 'Signature verification requires a server-side key';
+      } else {
+        algInfoEl.textContent = '—';
+        secretEl.disabled     = false;
+      }
+    }
+
+    async function triggerVerify() {
+      if (!currentParsed) return;
+      const alg      = currentParsed.header?.alg;
+      const hashAlg  = HMAC_ALGS[alg];
+      const secret   = document.getElementById('hmac-secret').value;
+      const statusEl = document.getElementById('verify-status');
+
+      if (!hashAlg) return; // handled by updateAlgInfo
+
+      if (!secret) {
+        statusEl.className   = 'verify-status warn';
+        statusEl.textContent = 'Enter a secret key to verify';
+        return;
+      }
+
+      try {
+        const ok = await verifyHMAC(currentParsed.parts, secret, hashAlg);
+        statusEl.className   = ok ? 'verify-status valid' : 'verify-status invalid';
+        statusEl.textContent = ok ? 'Signature valid ✓' : 'Signature invalid ✗';
+      } catch (e) {
+        statusEl.className   = 'verify-status invalid';
+        statusEl.textContent = `Error: ${e.message}`;
+      }
+    }
+
+    document.getElementById('do-verify').addEventListener('change', () => {
+      const on      = document.getElementById('do-verify').checked;
+      const inputs  = document.getElementById('verify-inputs');
+      const statusEl = document.getElementById('verify-status');
+      inputs.style.display = on ? 'flex' : 'none';
+      if (!on) { statusEl.className = 'verify-status'; return; }
+      if (currentParsed) updateAlgInfo(currentParsed.header?.alg || '—');
+      triggerVerify();
+    });
+
+    document.getElementById('hmac-secret').addEventListener('input', () => {
+      if (document.getElementById('do-verify').checked) triggerVerify();
+    });
+
+    // ── Copy ───────────────────────────────────────────────────────────────
+    document.getElementById('copy-btn').addEventListener('click', () => {
+      if (!currentParsed) return;
+      const p = currentParsed;
+      const sigBytes = b64urlToBytes(p.parts[2]);
+      const lines = [
+        '=== JWT Analysis ===',
+        '',
+        '--- Header ---',
+        JSON.stringify(p.header, null, 2),
+        '',
+        '--- Payload ---',
+        JSON.stringify(p.payload, null, 2),
+        '',
+        '--- Signature ---',
+        bytesToHex(sigBytes),
+        `(${sigBytes.length * 8} bits)`,
+      ];
+      navigator.clipboard.writeText(lines.join('\n')).then(() => {
+        const btn = document.getElementById('copy-btn');
+        btn.textContent = 'Copied!';
+        btn.classList.add('copied');
+        setTimeout(() => { btn.textContent = 'Copy'; btn.classList.remove('copied'); }, 1500);
+      });
+    });
+
+    // ── Wire up options ────────────────────────────────────────────────────
+    document.getElementById('jwt-input').addEventListener('input', renderOutput);
+    document.getElementById('show-raw').addEventListener('change', renderOutput);
+    document.getElementById('show-claim-desc').addEventListener('change', renderOutput);
+
+    // ── Theme toggle ───────────────────────────────────────────────────────
+    const SUN_SVG  = `<svg width="15" height="15" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round"><circle cx="12" cy="12" r="5"/><line x1="12" y1="1" x2="12" y2="3"/><line x1="12" y1="21" x2="12" y2="23"/><line x1="4.22" y1="4.22" x2="5.64" y2="5.64"/><line x1="18.36" y1="18.36" x2="19.78" y2="19.78"/><line x1="1" y1="12" x2="3" y2="12"/><line x1="21" y1="12" x2="23" y2="12"/><line x1="4.22" y1="19.78" x2="5.64" y2="18.36"/><line x1="18.36" y1="5.64" x2="19.78" y2="4.22"/></svg>`;
+    const MOON_SVG = `<svg width="15" height="15" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round"><path d="M21 12.79A9 9 0 1 1 11.21 3 7 7 0 0 0 21 12.79z"/></svg>`;
+    const toggleBtn = document.getElementById('theme-toggle');
+    function applyTheme(theme) {
+      document.documentElement.dataset.theme = theme;
+      localStorage.setItem('utils-theme', theme);
+      const isDark = theme === 'dark';
+      toggleBtn.innerHTML = isDark ? SUN_SVG : MOON_SVG;
+      toggleBtn.setAttribute('aria-label', isDark ? 'Switch to light mode' : 'Switch to dark mode');
+      toggleBtn.setAttribute('title',      isDark ? 'Switch to light mode' : 'Switch to dark mode');
+    }
+    toggleBtn.addEventListener('click', () => {
+      applyTheme(document.documentElement.dataset.theme === 'dark' ? 'light' : 'dark');
+    });
+    applyTheme(document.documentElement.dataset.theme);
+
+    // ── Init ───────────────────────────────────────────────────────────────
+    renderOutput();
+  </script>
+</body>
+</html>

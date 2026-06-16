@@ -22,6 +22,7 @@ colorpicker.html    Color picker with format conversions and tools
 regex.html          Regex tester with match visualization and premade patterns
 permissions.html    Linux file permission builder and decoder
 cron.html           Cron expression validator, explainer, and scheduler
+jwt.html            JSON Web Token decoder and inspector
 README.md           This file
 ```
 
@@ -260,12 +261,36 @@ Processing pipeline order: trim → remove empty → deduplicate → sort → ca
 
 ---
 
+### JWT (`jwt.html`)
+
+**Implemented:**
+- **Token input** — paste any JWT; textarea border turns green (valid) or red (invalid)
+- **Colored visual breakdown** — header, payload, and signature parts rendered in distinct colors with a legend
+- **Header section** — decoded header claims in a table; algorithm shown as a badge
+- **Payload section** — all claims in a table with special handling for standard claims:
+  - `exp` (Expires), `nbf` (Not Before), `iat` (Issued At) — displayed as formatted date/time with relative time ("Expired 2 hours ago", "in 3 days")
+  - Expiry badge on the section: Valid / Expired / No expiry
+  - Optional claim description column (iss, sub, aud, exp, nbf, iat, jti)
+- **Signature section** — raw signature bytes shown as hex, with bit/byte count
+- **JSON syntax highlighting** — keys, strings, numbers, booleans, and null each in distinct colors (VS Code palette)
+- **Show raw JSON** — toggle to show the formatted, syntax-highlighted raw JSON below each section
+- **HMAC signature verification** — verify HS256/HS384/HS512 tokens with a secret key using the Web Crypto API; asymmetric algorithms (RS256, ES256, etc.) show a note
+- **Copy** — copies decoded header, payload, and signature hex to the clipboard
+
+**Planned:**
+- Asymmetric signature verification (RS256/ES256 with a PEM public key)
+- Token builder / encoder
+- Token diff view (compare two tokens side by side)
+
+---
+
 ## Planned utilities
 - XML, YAML, TOML, CSV
 - URL, email, phone (validator, formatter and sorter)
 - Templater (Apply a template to a given dataset (simple: replace keyword in a text with attributes form input. advanced: create tables from a large dataset))
 - Table (create a dynamic table with sortable columns and search filters based on a json input)
 - Save settings and input to local storage
+- Data mapping (input data like json, apply mappping rules, generate output)
 
 ---
 

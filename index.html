@@ -67,6 +67,17 @@
     }
     main {
       padding: 36px 40px;
+      display: flex;
+      flex-direction: column;
+      gap: 32px;
+    }
+    .group-label {
+      font-size: 0.68rem;
+      font-weight: 700;
+      text-transform: uppercase;
+      letter-spacing: 0.1em;
+      color: var(--text-dim);
+      margin-bottom: 10px;
     }
     .grid {
       display: grid;
@@ -106,43 +117,64 @@
     <button class="theme-toggle" id="theme-toggle" aria-label="Toggle theme" title="Toggle theme"></button>
   </header>
   <main>
-    <div class="grid">
-      <a href="text.html" class="card">
-        <h2>Text</h2>
-        <p>Sort, deduplicate, trim, and clean up text lines</p>
-      </a>
-      <a href="json.html" class="card">
-        <h2>JSON</h2>
-        <p>Format, minify, validate, and sort JSON</p>
-      </a>
-      <a href="base64.html" class="card">
-        <h2>Base64</h2>
-        <p>Encode and decode with standard or URL-safe encoding</p>
-      </a>
-      <a href="password.html" class="card">
-        <h2>Password</h2>
-        <p>Generate secure random passwords with configurable character sets</p>
-      </a>
-      <a href="colorpicker.html" class="card">
-        <h2>Color Picker</h2>
-        <p>Pick colors and convert between HEX, RGB, HSL, HSV, CMYK with harmony and contrast info</p>
-      </a>
-      <a href="regex.html" class="card">
-        <h2>Regex</h2>
-        <p>Test and visualize regular expressions with match highlighting, group capture, and premade patterns</p>
-      </a>
-      <a href="permissions.html" class="card">
-        <h2>File Permissions</h2>
-        <p>Build and decode Linux file permissions with octal, symbolic, and chmod command output</p>
-      </a>
-      <a href="cron.html" class="card">
-        <h2>Cron</h2>
-        <p>Validate and explain cron expressions with plain-English descriptions and next scheduled run times</p>
-      </a>
-      <a href="jwt.html" class="card">
-        <h2>JWT</h2>
-        <p>Decode and inspect JSON Web Tokens — header, payload claims, expiry status, and optional HMAC signature verification</p>
-      </a>
+    <div>
+      <div class="group-label">Text &amp; Data</div>
+      <div class="grid">
+        <a href="text.html" class="card">
+          <h2>Text</h2>
+          <p>Sort, deduplicate, trim, and clean up text lines</p>
+        </a>
+        <a href="json.html" class="card">
+          <h2>JSON</h2>
+          <p>Format, minify, validate, and sort JSON</p>
+        </a>
+        <a href="regex.html" class="card">
+          <h2>Regex</h2>
+          <p>Test and visualize regular expressions with match highlighting, group capture, and premade patterns</p>
+        </a>
+      </div>
+    </div>
+
+    <div>
+      <div class="group-label">Encoding &amp; Conversion</div>
+      <div class="grid">
+        <a href="base64.html" class="card">
+          <h2>Base64</h2>
+          <p>Encode and decode with standard or URL-safe encoding</p>
+        </a>
+        <a href="colorpicker.html" class="card">
+          <h2>Color Picker</h2>
+          <p>Pick colors and convert between HEX, RGB, HSL, HSV, CMYK with harmony and contrast info</p>
+        </a>
+      </div>
+    </div>
+
+    <div>
+      <div class="group-label">Security &amp; Tokens</div>
+      <div class="grid">
+        <a href="password.html" class="card">
+          <h2>Password</h2>
+          <p>Generate secure random passwords with configurable character sets</p>
+        </a>
+        <a href="jwt.html" class="card">
+          <h2>JWT</h2>
+          <p>Decode and inspect JSON Web Tokens — header, payload claims, expiry status, and optional HMAC signature verification</p>
+        </a>
+      </div>
+    </div>
+
+    <div>
+      <div class="group-label">Linux &amp; System</div>
+      <div class="grid">
+        <a href="permissions.html" class="card">
+          <h2>File Permissions</h2>
+          <p>Build and decode Linux file permissions with octal, symbolic, and chmod command output</p>
+        </a>
+        <a href="cron.html" class="card">
+          <h2>Cron</h2>
+          <p>Validate and explain cron expressions with plain-English descriptions and next scheduled run times</p>
+        </a>
+      </div>
     </div>
   </main>
   <script>

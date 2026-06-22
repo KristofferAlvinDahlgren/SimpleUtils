@@ -138,14 +138,18 @@ Processing pipeline order: trim → remove empty → deduplicate → sort → ca
 ### Base64 (`base64.html`)
 
 **Implemented:**
-- **Encode** — UTF-8 text → Base64
-- **Decode** — Base64 → UTF-8 text
+- **Encode text** — UTF-8 text → Base64
+- **Decode text** — Base64 → UTF-8 text
+- **Encode file** — any file (image, PDF, binary, …) → Base64 or Data URL; drag-and-drop or file picker; image thumbnail shown in the input panel
+- **Decode to image** — Base64 or Data URL → inline image preview with download button
+- **Decode to file** — Base64 → downloadable file (specify MIME type or auto-detected from a data URL prefix)
 - **Auto-detect** — heuristic (character set + length divisibility) decides whether to encode or decode; shows which operation was chosen
 - **Standard encoding** — uses `+`, `/`, and `=` padding (RFC 4648 §4)
 - **URL-safe encoding** — uses `-`, `_`, no padding (RFC 4648 §5)
+- **Output format** — Raw Base64 or Data URL (`data:mime;base64,…`) when encoding a file
+- **MIME presets** — PNG, JPEG, WebP, GIF, SVG, PDF, Binary quick-select buttons when decoding to a file
 
 **Planned:**
-- File encode/decode (drag-and-drop binary files)
 - Line-wrap output at 76 characters (MIME Base64)
 - Validate that input is well-formed Base64 before decoding
 

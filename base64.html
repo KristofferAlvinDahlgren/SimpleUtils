@@ -15,7 +15,7 @@
     *, *::before, *::after { box-sizing: border-box; margin: 0; padding: 0; }
     :root {
       --bg: #1e1e1e; --surface: #252526; --surface-hover: #2a2d2e;
-      --surface-deep: #222222; --input-bg: #2d2d2d;
+      --surface-deep: #222222;
       --border: #3c3c3c; --accent: #0078d4; --accent-hover: #106ebe;
       --text: #d4d4d4; --text-dim: #888;
       --mono: 'Cascadia Code', Consolas, 'Courier New', monospace;
@@ -23,7 +23,7 @@
     }
     [data-theme="light"] {
       --bg: #f8f8f8; --surface: #ffffff; --surface-hover: #f0f0f0;
-      --surface-deep: #ebebeb; --input-bg: #f5f5f5;
+      --surface-deep: #ebebeb;
       --border: #d0d0d0; --accent: #0078d4; --accent-hover: #106ebe;
       --text: #1f1f1f; --text-dim: #767676;
       --success: #0e7a6e; --error: #c72e2e;
@@ -89,7 +89,7 @@
     .opt-row {
       display: flex; align-items: center; gap: 8px; font-size: 0.83rem;
     }
-    .opt-row label.radio-label {
+    .opt-row label {
       display: flex; align-items: center; gap: 6px;
       cursor: pointer; user-select: none;
     }
@@ -116,6 +116,93 @@
     .btn-primary:not(:disabled):hover { background: var(--accent-hover); }
     .btn-ghost { background: transparent; border: 1px solid var(--border); color: var(--text); }
     .btn-ghost:not(:disabled):hover { background: var(--surface-hover); }
+
+    /* ── Panel header (label + tabs) ─────────────────────────────────────── */
+    .panel-head {
+      display: flex; align-items: center; justify-content: space-between; flex-shrink: 0;
+    }
+    .label { font-size: 0.68rem; font-weight: 700; text-transform: uppercase;
+      letter-spacing: 0.1em; color: var(--text-dim); }
+    .tab-bar { display: flex; gap: 3px; }
+    .tab-btn {
+      padding: 2px 10px; border-radius: var(--r); border: 1px solid var(--border);
+      background: transparent; color: var(--text-dim); cursor: pointer; font-size: 0.73rem;
+      transition: background 0.15s, color 0.15s, border-color 0.15s;
+    }
+    .tab-btn.active { background: var(--accent); border-color: var(--accent); color: #fff; }
+    .tab-btn:not(.active):hover { background: var(--surface-hover); color: var(--text); }
+
+    /* ── Drop zone ────────────────────────────────────────────────────────── */
+    .drop-zone {
+      flex: 1; min-height: 0; border: 2px dashed var(--border); border-radius: var(--r);
+      display: flex; flex-direction: column; align-items: center; justify-content: center;
+      cursor: pointer; transition: border-color 0.15s, background 0.15s; overflow: hidden;
+    }
+    .drop-zone:hover { border-color: var(--accent); }
+    .drop-zone.drag-over {
+      border-color: var(--accent);
+      background: color-mix(in srgb, var(--accent) 6%, transparent);
+    }
+    #drop-empty {
+      display: flex; flex-direction: column; align-items: center; gap: 10px;
+      padding: 24px; text-align: center; color: var(--text-dim); pointer-events: none;
+    }
+    #drop-empty svg { opacity: 0.4; }
+    .drop-text { font-size: 0.85rem; }
+    .drop-sub  { font-size: 0.72rem; }
+    #btn-browse { pointer-events: all; width: auto; padding: 5px 16px; }
+
+    /* File loaded state */
+    .file-loaded {
+      width: 100%; padding: 12px 14px;
+      display: flex; gap: 12px; align-items: flex-start;
+    }
+    .thumb-box {
+      flex-shrink: 0; width: 72px; height: 72px;
+      border: 1px solid var(--border); border-radius: var(--r);
+      background: var(--surface-deep); display: flex; align-items: center;
+      justify-content: center; overflow: hidden;
+    }
+    .thumb-box img { max-width: 100%; max-height: 100%; object-fit: contain; display: block; }
+    .file-ext {
+      font-size: 0.65rem; font-weight: 700; text-transform: uppercase;
+      color: var(--text-dim); text-align: center; word-break: break-all; padding: 2px;
+    }
+    .file-meta { flex: 1; min-width: 0; display: flex; flex-direction: column; gap: 3px; }
+    .file-name { font-size: 0.82rem; font-weight: 500; word-break: break-all; line-height: 1.35; }
+    .file-detail { font-size: 0.72rem; color: var(--text-dim); }
+    .drop-replace { font-size: 0.68rem; color: var(--text-dim); margin-top: 6px; font-style: italic; }
+
+    /* ── MIME options ─────────────────────────────────────────────────────── */
+    .hint { font-size: 0.72rem; color: var(--text-dim); line-height: 1.4; }
+    .text-input {
+      width: 100%; background: var(--surface); border: 1px solid var(--border);
+      border-radius: var(--r); color: var(--text); font-family: var(--mono);
+      font-size: 0.78rem; padding: 5px 8px; outline: none; transition: border-color 0.15s;
+    }
+    .text-input:focus { border-color: var(--accent); }
+    .preset-btns { display: flex; flex-wrap: wrap; gap: 4px; margin-top: 2px; }
+    .preset-btn {
+      padding: 2px 6px; border-radius: 3px; border: 1px solid var(--border);
+      background: transparent; color: var(--text-dim); cursor: pointer; font-size: 0.72rem;
+      transition: background 0.15s, color 0.15s, border-color 0.15s;
+    }
+    .preset-btn:hover { background: var(--surface-hover); color: var(--text); border-color: var(--accent); }
+
+    /* ── Image preview ────────────────────────────────────────────────────── */
+    .img-preview-wrap {
+      flex: 1; min-height: 0; border: 1px solid var(--border); border-radius: var(--r);
+      background: var(--surface-deep); display: flex; flex-direction: column;
+      align-items: center; justify-content: center; gap: 8px;
+      padding: 12px; overflow: hidden;
+    }
+    .img-preview-wrap img {
+      max-width: 100%; flex: 1; min-height: 0;
+      object-fit: contain; border-radius: calc(var(--r) - 1px);
+    }
+    .img-info { font-size: 0.72rem; color: var(--text-dim); flex-shrink: 0; text-align: center; }
+
+    .hidden { display: none !important; }
   </style>
 </head>
 <body>
@@ -126,159 +213,432 @@
     <button class="theme-toggle" id="theme-toggle" aria-label="Toggle theme" title="Toggle theme"></button>
   </header>
   <main>
+    <!-- ── Input panel ───────────────────────────────────────────────────── -->
     <div class="panel">
-      <span class="label">Input</span>
+      <div class="panel-head">
+        <span class="label">Input</span>
+        <div class="tab-bar">
+          <button class="tab-btn active" id="tab-text">Text</button>
+          <button class="tab-btn" id="tab-file">File</button>
+        </div>
+      </div>
+
+      <!-- Text input -->
       <textarea id="input" placeholder="Text to encode, or Base64 to decode…" spellcheck="false"></textarea>
+
+      <!-- File drop zone -->
+      <div class="drop-zone hidden" id="drop-zone" role="button" tabindex="0" aria-label="Drop a file or click to browse">
+        <div id="drop-empty">
+          <svg width="32" height="32" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="1.5" stroke-linecap="round" stroke-linejoin="round">
+            <path d="M21 15v4a2 2 0 0 1-2 2H5a2 2 0 0 1-2-2v-4"/>
+            <polyline points="17 8 12 3 7 8"/>
+            <line x1="12" y1="3" x2="12" y2="15"/>
+          </svg>
+          <div class="drop-text">Drop a file here</div>
+          <div class="drop-sub">or</div>
+          <button class="btn btn-ghost" id="btn-browse">Browse…</button>
+        </div>
+        <div class="file-loaded hidden" id="file-loaded">
+          <div class="thumb-box">
+            <img id="thumbnail" alt="" class="hidden">
+            <span class="file-ext hidden" id="file-ext"></span>
+          </div>
+          <div class="file-meta">
+            <div class="file-name" id="file-name"></div>
+            <div class="file-detail" id="file-type-el"></div>
+            <div class="file-detail" id="file-size-el"></div>
+            <div class="drop-replace">Drop or browse to replace</div>
+          </div>
+        </div>
+      </div>
+      <input type="file" id="file-input" hidden>
     </div>
 
+    <!-- ── Options panel ─────────────────────────────────────────────────── -->
     <div class="options-panel">
-      <div class="opt-group">
+
+      <!-- Operation (text mode) -->
+      <div class="opt-group" id="op-group">
         <div class="opt-title">Operation</div>
-        <div class="opt-row">
-          <label class="radio-label">
-            <input type="radio" name="op" value="encode" checked> Encode
-          </label>
-        </div>
-        <div class="opt-row">
-          <label class="radio-label">
-            <input type="radio" name="op" value="decode"> Decode
-          </label>
-        </div>
-        <div class="opt-row">
-          <label class="radio-label">
-            <input type="radio" name="op" value="auto"> Auto-detect
-          </label>
-        </div>
+        <div class="opt-row"><label><input type="radio" name="op" value="encode" checked> Encode</label></div>
+        <div class="opt-row"><label><input type="radio" name="op" value="decode"> Decode</label></div>
+        <div class="opt-row" id="auto-row"><label><input type="radio" name="op" value="auto"> Auto-detect</label></div>
         <div id="auto-hint" class="auto-hint"></div>
       </div>
 
+      <!-- Operation notice (file mode) -->
+      <div class="opt-group hidden" id="file-op-notice">
+        <div class="opt-title">Operation</div>
+        <div class="hint">Encoding file → Base64</div>
+      </div>
+
+      <!-- Encoding -->
       <div class="opt-group">
         <div class="opt-title">Encoding</div>
-        <div class="opt-row">
-          <label class="radio-label">
-            <input type="radio" name="enc" value="standard" checked> Standard
-          </label>
-        </div>
-        <div class="opt-row">
-          <label class="radio-label">
-            <input type="radio" name="enc" value="urlsafe"> URL-safe
-          </label>
+        <div class="opt-row"><label><input type="radio" name="enc" value="standard" checked> Standard</label></div>
+        <div class="opt-row"><label><input type="radio" name="enc" value="urlsafe"> URL-safe</label></div>
+      </div>
+
+      <!-- Output format (file mode only) -->
+      <div class="opt-group hidden" id="outfmt-group">
+        <div class="opt-title">Output format</div>
+        <div class="opt-row"><label><input type="radio" name="outfmt" value="raw" checked> Raw Base64</label></div>
+        <div class="opt-row"><label><input type="radio" name="outfmt" value="dataurl"> Data URL</label></div>
+      </div>
+
+      <!-- Decode output type (text mode + decode/auto only) -->
+      <div class="opt-group hidden" id="outype-group">
+        <div class="opt-title">Decode as</div>
+        <div class="opt-row"><label><input type="radio" name="outype" value="text" checked> Text</label></div>
+        <div class="opt-row"><label><input type="radio" name="outype" value="file"> Image / File</label></div>
+        <div class="hidden" id="mime-row" style="display:flex;flex-direction:column;gap:6px;margin-top:2px">
+          <input class="text-input" type="text" id="mime-input" placeholder="MIME type…" value="image/png" spellcheck="false">
+          <div class="preset-btns">
+            <button class="preset-btn" data-mime="image/png">PNG</button>
+            <button class="preset-btn" data-mime="image/jpeg">JPEG</button>
+            <button class="preset-btn" data-mime="image/webp">WebP</button>
+            <button class="preset-btn" data-mime="image/gif">GIF</button>
+            <button class="preset-btn" data-mime="image/svg+xml">SVG</button>
+          </div>
+          <div class="preset-btns">
+            <button class="preset-btn" data-mime="application/pdf">PDF</button>
+            <button class="preset-btn" data-mime="application/octet-stream">Binary</button>
+          </div>
+          <div class="hint">Auto-detected from data URLs</div>
         </div>
       </div>
     </div>
 
+    <!-- ── Output panel ──────────────────────────────────────────────────── -->
     <div class="panel">
       <span class="label">Output</span>
       <textarea id="output" readonly placeholder="Output appears here…" spellcheck="false"></textarea>
+      <div class="img-preview-wrap hidden" id="img-wrap">
+        <img id="img-preview" alt="Decoded image">
+        <div class="img-info" id="img-info"></div>
+      </div>
       <div id="status" class="status"></div>
       <div class="action-row">
         <button class="btn btn-ghost" id="btn-copy" disabled>Copy</button>
-        <button class="btn btn-primary" id="btn-commit" disabled title="Replace input with output">Commit</button>
+        <button class="btn btn-primary" id="btn-commit" disabled>Commit</button>
+        <button class="btn btn-ghost hidden" id="btn-download">Download</button>
       </div>
     </div>
   </main>
 
   <script>
-    const inputEl   = document.getElementById('input');
-    const outputEl  = document.getElementById('output');
-    const statusEl  = document.getElementById('status');
-    const autoHint  = document.getElementById('auto-hint');
-    const btnCopy   = document.getElementById('btn-copy');
-    const btnCommit = document.getElementById('btn-commit');
+    // ── State ──────────────────────────────────────────────────────────────
+    let currentSource = 'text'; // 'text' | 'file'
+    let loadedFile    = null;   // { bytes, name, type }
+    let previewUrl    = null;   // Object URL for download/preview
+    let downloadName  = 'decoded';
 
-    function encodeB64(str, urlSafe) {
-      const bytes  = new TextEncoder().encode(str);
-      const binary = Array.from(bytes, b => String.fromCharCode(b)).join('');
-      let b64 = btoa(binary);
+    // ── Refs ───────────────────────────────────────────────────────────────
+    const inputEl     = document.getElementById('input');
+    const outputEl    = document.getElementById('output');
+    const statusEl    = document.getElementById('status');
+    const autoHint    = document.getElementById('auto-hint');
+    const btnCopy     = document.getElementById('btn-copy');
+    const btnCommit   = document.getElementById('btn-commit');
+    const btnDownload = document.getElementById('btn-download');
+    const dropZone    = document.getElementById('drop-zone');
+    const fileInput   = document.getElementById('file-input');
+    const imgWrap     = document.getElementById('img-wrap');
+    const imgPreview  = document.getElementById('img-preview');
+    const imgInfo     = document.getElementById('img-info');
+    const mimeInput   = document.getElementById('mime-input');
+    const mimeRow     = document.getElementById('mime-row');
+
+    // ── Option readers ─────────────────────────────────────────────────────
+    function getOp()      { return document.querySelector('[name="op"]:checked').value; }
+    function getUrlSafe() { return document.querySelector('[name="enc"]:checked').value === 'urlsafe'; }
+    function getOutFmt()  { return document.querySelector('[name="outfmt"]:checked')?.value || 'raw'; }
+    function getOutType() { return document.querySelector('[name="outype"]:checked')?.value || 'text'; }
+
+    // ── Helpers ────────────────────────────────────────────────────────────
+    function formatBytes(n) {
+      if (n < 1024) return n + ' B';
+      if (n < 1048576) return (n / 1024).toFixed(1) + ' KB';
+      return (n / 1048576).toFixed(1) + ' MB';
+    }
+    function revokePreview() {
+      if (previewUrl) { URL.revokeObjectURL(previewUrl); previewUrl = null; }
+    }
+
+    // ── Encode / decode ────────────────────────────────────────────────────
+    function encodeText(str, urlSafe) {
+      const bytes = new TextEncoder().encode(str);
+      const bin   = Array.from(bytes, b => String.fromCharCode(b)).join('');
+      let b64 = btoa(bin);
       if (urlSafe) b64 = b64.replace(/\+/g, '-').replace(/\//g, '_').replace(/=/g, '');
       return b64;
     }
-
-    function decodeB64(b64, urlSafe) {
-      if (urlSafe) {
-        b64 = b64.replace(/-/g, '+').replace(/_/g, '/');
-      }
-      // Restore padding
-      while (b64.length % 4 !== 0) b64 += '=';
+    function decodeToText(b64, urlSafe) {
+      if (urlSafe) b64 = b64.replace(/-/g, '+').replace(/_/g, '/');
+      while (b64.length % 4) b64 += '=';
       const binary = atob(b64);
-      const bytes  = Uint8Array.from(binary, c => c.charCodeAt(0));
-      return new TextDecoder().decode(bytes);
+      return new TextDecoder().decode(Uint8Array.from(binary, c => c.charCodeAt(0)));
     }
-
-    function isLikelyBase64(str) {
-      const s = str.trim().replace(/[\r\n\s]/g, '');
+    function encodeBytes(bytes, urlSafe) {
+      const bin = Array.from(bytes, b => String.fromCharCode(b)).join('');
+      let b64 = btoa(bin);
+      if (urlSafe) b64 = b64.replace(/\+/g, '-').replace(/\//g, '_').replace(/=/g, '');
+      return b64;
+    }
+    function isLikelyBase64(s) {
       if (!s) return false;
-      // URL-safe base64 (no +/ chars, no mandatory padding)
       if (/^[A-Za-z0-9\-_]+=*$/.test(s) && !/^[A-Za-z0-9+/]+=*$/.test(s)) return true;
-      // Standard base64 (length must be multiple of 4)
       return /^[A-Za-z0-9+/]+=*$/.test(s) && s.length % 4 === 0;
     }
 
+    // ── Output helpers ─────────────────────────────────────────────────────
+    function showText(result, { commit = true } = {}) {
+      revokePreview();
+      outputEl.classList.remove('hidden'); imgWrap.classList.add('hidden');
+      outputEl.value = result;
+      statusEl.className = 'status';
+      statusEl.textContent = result.length.toLocaleString() + ' chars';
+      btnCopy.classList.remove('hidden');    btnCopy.disabled = false;
+      btnCommit.classList.toggle('hidden', !commit); btnCommit.disabled = !commit;
+      btnDownload.classList.add('hidden');
+      autoHint.className = 'auto-hint';
+    }
+    function showImagePreview(url, mime, byteLen) {
+      outputEl.classList.add('hidden'); imgWrap.classList.remove('hidden');
+      imgPreview.src = url;
+      imgInfo.textContent = mime + ' · ' + formatBytes(byteLen);
+      statusEl.className = 'status'; statusEl.textContent = 'Decoded successfully';
+      btnCopy.classList.add('hidden'); btnCommit.classList.add('hidden');
+      btnDownload.classList.remove('hidden'); btnDownload.disabled = false;
+    }
+    function showDownloadOnly(mime, byteLen) {
+      outputEl.classList.add('hidden'); imgWrap.classList.add('hidden');
+      statusEl.className = 'status';
+      statusEl.textContent = mime + ' · ' + formatBytes(byteLen) + ' — ready to download';
+      btnCopy.classList.add('hidden'); btnCommit.classList.add('hidden');
+      btnDownload.classList.remove('hidden'); btnDownload.disabled = false;
+    }
+    function showError(msg) {
+      revokePreview();
+      outputEl.classList.remove('hidden'); imgWrap.classList.add('hidden');
+      outputEl.value = '';
+      statusEl.className = 'status err'; statusEl.textContent = msg;
+      btnCopy.classList.remove('hidden'); btnCopy.disabled = true;
+      btnCommit.classList.remove('hidden'); btnCommit.disabled = true;
+      btnDownload.classList.add('hidden');
+    }
+    function clearOutput() {
+      revokePreview();
+      outputEl.classList.remove('hidden'); imgWrap.classList.add('hidden');
+      outputEl.value = '';
+      statusEl.className = 'status'; statusEl.textContent = '';
+      autoHint.className = 'auto-hint';
+      btnCopy.classList.remove('hidden'); btnCopy.disabled = true;
+      btnCommit.classList.remove('hidden'); btnCommit.disabled = true;
+      btnDownload.classList.add('hidden');
+    }
+
+    // ── Core processing ────────────────────────────────────────────────────
     function process() {
+      currentSource === 'file' ? processFile() : processText();
+    }
+
+    function processText() {
       const raw = inputEl.value;
+      if (!raw.trim()) { clearOutput(); return; }
 
-      if (!raw.trim()) {
-        outputEl.value = '';
-        statusEl.textContent = '';
-        statusEl.className = 'status';
-        autoHint.className = 'auto-hint';
-        btnCopy.disabled = btnCommit.disabled = true;
-        return;
-      }
-
-      const op      = document.querySelector('[name="op"]:checked').value;
-      const urlSafe = document.querySelector('[name="enc"]:checked').value === 'urlsafe';
-      let actualOp  = op;
+      const urlSafe = getUrlSafe();
+      const op = getOp();
+      let actualOp = op;
 
       if (op === 'auto') {
-        actualOp = isLikelyBase64(raw) ? 'decode' : 'encode';
-        autoHint.textContent = `Detected: ${actualOp === 'decode' ? 'Base64 → decoding' : 'plain text → encoding'}`;
+        const clean = raw.trim().replace(/[\r\n\s]/g, '');
+        actualOp = isLikelyBase64(clean) ? 'decode' : 'encode';
+        autoHint.textContent = actualOp === 'decode' ? 'Detected: Base64 → decoding' : 'Detected: plain text → encoding';
         autoHint.className = 'auto-hint visible';
       } else {
         autoHint.className = 'auto-hint';
       }
 
-      try {
-        let result;
-        if (actualOp === 'encode') {
-          result = encodeB64(raw, urlSafe);
-        } else {
-          const clean = raw.trim().replace(/[\r\n\s]/g, '');
-          result = decodeB64(clean, urlSafe);
-        }
-        outputEl.value = result;
-        statusEl.className = 'status';
-        statusEl.textContent = `${result.length} chars`;
-        btnCopy.disabled = btnCommit.disabled = false;
-      } catch (e) {
-        outputEl.value = '';
-        statusEl.className = 'status err';
-        statusEl.textContent = 'Error: ' + (e.message || 'Invalid input');
-        btnCopy.disabled = btnCommit.disabled = true;
+      if (actualOp === 'encode') {
+        try { showText(encodeText(raw, urlSafe)); }
+        catch (e) { showError('Error: ' + e.message); }
+        return;
+      }
+
+      // Decode
+      if (getOutType() === 'file') {
+        decodeToFile(raw, urlSafe);
+      } else {
+        try { showText(decodeToText(raw.trim().replace(/[\r\n\s]/g, ''), urlSafe)); }
+        catch (e) { showError('Error: ' + (e.message || 'Invalid Base64')); }
       }
     }
 
+    function processFile() {
+      if (!loadedFile) { clearOutput(); return; }
+      const b64    = encodeBytes(loadedFile.bytes, getUrlSafe());
+      const result = getOutFmt() === 'dataurl'
+        ? 'data:' + loadedFile.type + ';base64,' + b64
+        : b64;
+      showText(result, { commit: false });
+      statusEl.textContent = b64.length.toLocaleString() + ' chars · ' + formatBytes(loadedFile.bytes.length);
+    }
+
+    function decodeToFile(raw, urlSafe) {
+      try {
+        const trimmed = raw.trim();
+        const dataUrlMatch = trimmed.match(/^data:([^;,\s]+)(?:;[^,]*)?,(.+)$/s);
+        let mime, b64str;
+
+        if (dataUrlMatch) {
+          mime = dataUrlMatch[1]; b64str = dataUrlMatch[2];
+          mimeRow.classList.add('hidden');
+          mimeInput.value = mime;
+        } else {
+          mime   = mimeInput.value.trim() || 'application/octet-stream';
+          b64str = trimmed.replace(/[\r\n\s]/g, '');
+          mimeRow.classList.remove('hidden');
+        }
+
+        if (urlSafe) b64str = b64str.replace(/-/g, '+').replace(/_/g, '/');
+        while (b64str.length % 4) b64str += '=';
+
+        const binary = atob(b64str);
+        const bytes  = Uint8Array.from(binary, c => c.charCodeAt(0));
+
+        const extMap = {
+          'image/png':'png','image/jpeg':'jpg','image/webp':'webp',
+          'image/gif':'gif','image/svg+xml':'svg','application/pdf':'pdf',
+          'text/plain':'txt','application/json':'json'
+        };
+        const ext = extMap[mime] || (mime.includes('/') ? mime.split('/')[1] : 'bin');
+        downloadName = 'decoded.' + ext;
+
+        revokePreview();
+        const blob = new Blob([bytes], { type: mime });
+        previewUrl = URL.createObjectURL(blob);
+
+        if (mime.startsWith('image/')) showImagePreview(previewUrl, mime, bytes.length);
+        else showDownloadOnly(mime, bytes.length);
+      } catch (e) {
+        showError('Error: ' + (e.message || 'Invalid Base64'));
+      }
+    }
+
+    // ── UI visibility ──────────────────────────────────────────────────────
+    function updateOptions() {
+      const isFile = currentSource === 'file';
+      const op = getOp();
+
+      document.getElementById('op-group').classList.toggle('hidden', isFile);
+      document.getElementById('file-op-notice').classList.toggle('hidden', !isFile);
+      document.getElementById('auto-row').classList.toggle('hidden', isFile);
+      document.getElementById('outfmt-group').classList.toggle('hidden', !isFile);
+
+      const showOutType = !isFile && (op === 'decode' || op === 'auto');
+      document.getElementById('outype-group').classList.toggle('hidden', !showOutType);
+
+      const showMime = showOutType && getOutType() === 'file';
+      mimeRow.classList.toggle('hidden', !showMime);
+    }
+
+    // ── Tab switching ──────────────────────────────────────────────────────
+    function setSource(source) {
+      currentSource = source;
+      const isFile = source === 'file';
+      document.getElementById('tab-text').classList.toggle('active', !isFile);
+      document.getElementById('tab-file').classList.toggle('active', isFile);
+      inputEl.classList.toggle('hidden', isFile);
+      dropZone.classList.toggle('hidden', !isFile);
+      updateOptions();
+      clearOutput();
+      if (isFile && loadedFile) process();
+    }
+
+    // ── File loading ───────────────────────────────────────────────────────
+    function loadFile(file) {
+      const reader = new FileReader();
+      reader.onload = (e) => {
+        loadedFile = { bytes: new Uint8Array(e.target.result), name: file.name, type: file.type || 'application/octet-stream' };
+        const thumb = document.getElementById('thumbnail');
+        const ext   = document.getElementById('file-ext');
+        if (file.type.startsWith('image/')) {
+          const tmpUrl = URL.createObjectURL(file);
+          thumb.onload = () => URL.revokeObjectURL(tmpUrl);
+          thumb.src = tmpUrl;
+          thumb.classList.remove('hidden'); ext.classList.add('hidden');
+        } else {
+          thumb.classList.add('hidden'); thumb.src = '';
+          ext.textContent = (file.name.split('.').pop() || '?').slice(0, 4).toUpperCase();
+          ext.classList.remove('hidden');
+        }
+        document.getElementById('file-name').textContent    = file.name;
+        document.getElementById('file-type-el').textContent = file.type || 'unknown type';
+        document.getElementById('file-size-el').textContent = formatBytes(file.size);
+        document.getElementById('drop-empty').classList.add('hidden');
+        document.getElementById('file-loaded').classList.remove('hidden');
+        process();
+      };
+      reader.readAsArrayBuffer(file);
+    }
+
+    // ── Events ─────────────────────────────────────────────────────────────
+    document.getElementById('tab-text').addEventListener('click', () => setSource('text'));
+    document.getElementById('tab-file').addEventListener('click', () => setSource('file'));
+
     inputEl.addEventListener('input', process);
-    document.querySelectorAll('[name="op"], [name="enc"]').forEach(el => {
-      el.addEventListener('change', process);
+
+    document.querySelectorAll('[name="op"],[name="enc"],[name="outfmt"],[name="outype"]')
+      .forEach(el => el.addEventListener('change', () => { updateOptions(); process(); }));
+
+    mimeInput.addEventListener('input', () => {
+      if (currentSource === 'text' && getOutType() === 'file') process();
+    });
+    document.querySelectorAll('[data-mime]').forEach(btn => {
+      btn.addEventListener('click', () => { mimeInput.value = btn.dataset.mime; process(); });
     });
 
+    // Drop zone
+    dropZone.addEventListener('click', () => fileInput.click());
+    document.getElementById('btn-browse').addEventListener('click', (e) => {
+      e.stopPropagation(); fileInput.click();
+    });
+    dropZone.addEventListener('dragover', (e) => { e.preventDefault(); dropZone.classList.add('drag-over'); });
+    dropZone.addEventListener('dragleave', (e) => {
+      if (!dropZone.contains(e.relatedTarget)) dropZone.classList.remove('drag-over');
+    });
+    dropZone.addEventListener('drop', (e) => {
+      e.preventDefault(); dropZone.classList.remove('drag-over');
+      const file = e.dataTransfer.files[0];
+      if (file) loadFile(file);
+    });
+    fileInput.addEventListener('change', (e) => {
+      const file = e.target.files[0];
+      if (file) loadFile(file);
+      fileInput.value = '';
+    });
+
+    // Copy
     btnCopy.addEventListener('click', async () => {
-      try {
-        await navigator.clipboard.writeText(outputEl.value);
-      } catch {
-        outputEl.select();
-        document.execCommand('copy');
-      }
+      try { await navigator.clipboard.writeText(outputEl.value); }
+      catch { outputEl.select(); document.execCommand('copy'); }
       const prev = btnCopy.textContent;
       btnCopy.textContent = 'Copied!';
       setTimeout(() => { btnCopy.textContent = prev; }, 1500);
     });
 
-    btnCommit.addEventListener('click', () => {
-      inputEl.value = outputEl.value;
-      process();
+    // Commit
+    btnCommit.addEventListener('click', () => { inputEl.value = outputEl.value; process(); });
+
+    // Download
+    btnDownload.addEventListener('click', () => {
+      if (!previewUrl) return;
+      const a = document.createElement('a');
+      a.href = previewUrl; a.download = downloadName; a.click();
     });
+
+    updateOptions();
   </script>
   <script>
     const SUN_SVG = `<svg width="15" height="15" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round"><circle cx="12" cy="12" r="5"/><line x1="12" y1="1" x2="12" y2="3"/><line x1="12" y1="21" x2="12" y2="23"/><line x1="4.22" y1="4.22" x2="5.64" y2="5.64"/><line x1="18.36" y1="18.36" x2="19.78" y2="19.78"/><line x1="1" y1="12" x2="3" y2="12"/><line x1="21" y1="12" x2="23" y2="12"/><line x1="4.22" y1="19.78" x2="5.64" y2="18.36"/><line x1="18.36" y1="5.64" x2="19.78" y2="4.22"/></svg>`;

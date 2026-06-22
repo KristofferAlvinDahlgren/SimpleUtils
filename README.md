@@ -23,6 +23,8 @@ regex.html          Regex tester with match visualization and premade patterns
 permissions.html    Linux file permission builder and decoder
 cron.html           Cron expression validator, explainer, and scheduler
 jwt.html            JSON Web Token decoder and inspector
+hash.html           Hashing with MD5, SHA-*, and HMAC algorithms
+encryption.html     AES-GCM / AES-CBC encrypt and decrypt
 README.md           This file
 ```
 
@@ -284,13 +286,51 @@ Processing pipeline order: trim → remove empty → deduplicate → sort → ca
 
 ---
 
+### Hash (`hash.html`)
+
+**Implemented:**
+- **Algorithms** — MD5 (pure JS, legacy), SHA-1 (weak), SHA-256, SHA-384, SHA-512, HMAC-SHA-256/384/512
+- **HMAC** — conditional secret key input; key is UTF-8 encoded
+- **Output formats** — Hex (upper or lower), Base64, Base64url
+- **Compare** — paste an expected hash to verify; case-insensitive match badge
+- **Bit/byte count** — shown below the output
+- **Real-time update** — hash recomputed as the user types
+
+**Planned:**
+- SHA-3 family (SHA3-256, SHA3-512) via a pure-JS implementation
+- File hashing (drag-and-drop)
+- Multi-line / per-line hashing
+
+---
+
+### Encryption (`encryption.html`)
+
+**Implemented:**
+- **Algorithms** — AES-GCM-256 (default, authenticated), AES-GCM-128, AES-CBC-256, AES-CBC-128
+- **Key sources** — Passphrase (PBKDF2-SHA256, 100 000 iterations, random 16-byte salt), Hex key, Base64 key
+- **Passphrase show/hide** — toggle visibility of the passphrase field
+- **Generate key** — random key of the correct length for the selected algorithm
+- **Encoding** — Hex or Base64 for the encoded ciphertext
+- **Self-contained output** — salt (passphrase mode) + IV + ciphertext concatenated in a single encoded string; no separate metadata needed for decryption
+- **Session details** — derived/used key (hex), salt (hex), and IV (hex) shown after each operation with individual copy buttons
+- **Commit** — after decryption, replace the input with the plaintext and switch to encrypt mode
+- **CBC warning** — note shown when AES-CBC is selected (no integrity verification)
+
+**Planned:**
+- RSA-OAEP asymmetric encryption with PEM key pair generation
+- File encrypt/decrypt (binary, drag-and-drop)
+- Key export as PEM or JSON Web Key
+
+---
+
 ## Planned utilities
 - XML, YAML, TOML, CSV
 - URL, email, phone (validator, formatter and sorter)
 - Templater (Apply a template to a given dataset (simple: replace keyword in a text with attributes form input. advanced: create tables from a large dataset))
 - Table (create a dynamic table with sortable columns and search filters based on a json input)
 - Save settings and input to local storage
-- Data mapping (input data like json, apply mappping rules, generate output)
+- Data mapping (input data like json, apply mapping rules, generate output)
+- Image/base64 conversion
 
 ---
 

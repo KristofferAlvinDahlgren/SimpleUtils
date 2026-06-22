@@ -1,0 +1,410 @@
+<!DOCTYPE html>
+<html lang="en" data-theme="dark">
+<head>
+  <meta charset="UTF-8">
+  <meta name="viewport" content="width=device-width, initial-scale=1.0">
+  <title>Hash — Utils</title>
+  <script>
+    (function () {
+      const saved = localStorage.getItem('utils-theme');
+      const preferred = saved || (window.matchMedia('(prefers-color-scheme: light)').matches ? 'light' : 'dark');
+      document.documentElement.dataset.theme = preferred;
+    })();
+  </script>
+  <style>
+    *, *::before, *::after { box-sizing: border-box; margin: 0; padding: 0; }
+    :root {
+      --bg: #1e1e1e; --surface: #252526; --surface-hover: #2a2d2e;
+      --surface-deep: #222222;
+      --border: #3c3c3c; --accent: #0078d4; --accent-hover: #106ebe;
+      --text: #d4d4d4; --text-dim: #888;
+      --mono: 'Cascadia Code', Consolas, 'Courier New', monospace;
+      --r: 5px;
+      --success: #4ec9b0; --warn: #dcdcaa; --error: #f44747;
+    }
+    [data-theme="light"] {
+      --bg: #f8f8f8; --surface: #ffffff; --surface-hover: #f0f0f0;
+      --surface-deep: #ebebeb;
+      --border: #d0d0d0; --accent: #0078d4; --accent-hover: #106ebe;
+      --text: #1f1f1f; --text-dim: #767676;
+      --success: #0e7a6e; --warn: #7a6400; --error: #c72e2e;
+    }
+    body {
+      font-family: -apple-system, BlinkMacSystemFont, 'Segoe UI', sans-serif;
+      background: var(--bg); color: var(--text);
+      height: 100vh; display: grid; grid-template-rows: auto 1fr; overflow: hidden;
+    }
+    header {
+      display: flex; align-items: center; gap: 16px;
+      padding: 0 20px; height: 48px; border-bottom: 1px solid var(--border);
+      flex-shrink: 0;
+    }
+    header a { color: var(--text-dim); text-decoration: none; font-size: 0.82rem; }
+    header a:hover { color: var(--text); }
+    header h1 { font-size: 1rem; font-weight: 600; }
+    .header-spacer { flex: 1; }
+    .theme-toggle {
+      display: flex; align-items: center; justify-content: center;
+      width: 30px; height: 30px; padding: 0;
+      border: 1px solid var(--border); border-radius: var(--r);
+      background: transparent; color: var(--text-dim);
+      cursor: pointer; flex-shrink: 0;
+      transition: background 0.15s, color 0.15s, border-color 0.15s;
+    }
+    .theme-toggle:hover { background: var(--surface-hover); color: var(--text); border-color: var(--accent); }
+    .theme-toggle svg { display: block; pointer-events: none; }
+
+    main {
+      display: grid; grid-template-columns: 1fr 230px 1fr;
+      min-height: 0; overflow: hidden;
+    }
+    .panel {
+      display: flex; flex-direction: column;
+      padding: 14px; gap: 10px; min-height: 0; overflow: hidden;
+      border-right: 1px solid var(--border);
+    }
+    .panel:last-child { border-right: none; }
+    .label {
+      font-size: 0.68rem; font-weight: 700; text-transform: uppercase;
+      letter-spacing: 0.1em; color: var(--text-dim); flex-shrink: 0;
+    }
+    textarea {
+      flex: 1; min-height: 0; resize: none;
+      background: var(--surface); border: 1px solid var(--border);
+      border-radius: var(--r); color: var(--text);
+      font-family: var(--mono); font-size: 0.85rem; line-height: 1.65;
+      padding: 10px 12px; outline: none; transition: border-color 0.15s;
+    }
+    textarea:focus { border-color: var(--accent); }
+
+    /* ── Options ─────────────────────────────────────────────────────────── */
+    .options-panel {
+      display: flex; flex-direction: column; gap: 16px;
+      padding: 14px; overflow-y: auto; min-height: 0;
+      border-right: 1px solid var(--border);
+    }
+    .opt-group { display: flex; flex-direction: column; gap: 8px; }
+    .opt-title {
+      font-size: 0.68rem; font-weight: 700; text-transform: uppercase;
+      letter-spacing: 0.1em; color: var(--text-dim);
+      border-bottom: 1px solid var(--border); padding-bottom: 5px;
+    }
+    .opt-row { display: flex; align-items: center; gap: 8px; font-size: 0.83rem; }
+    .opt-row label { display: flex; align-items: center; gap: 6px; cursor: pointer; user-select: none; }
+    input[type="radio"], input[type="checkbox"] {
+      width: 14px; height: 14px; cursor: pointer; accent-color: var(--accent); flex-shrink: 0;
+    }
+    .text-input {
+      width: 100%;
+      background: var(--surface); border: 1px solid var(--border); border-radius: var(--r);
+      color: var(--text); font-family: var(--mono); font-size: 0.78rem;
+      padding: 5px 8px; outline: none; transition: border-color 0.15s;
+    }
+    .text-input:focus { border-color: var(--accent); }
+    .hint { font-size: 0.72rem; color: var(--text-dim); }
+    .weak-badge {
+      font-size: 0.62rem; padding: 1px 4px; border-radius: 3px;
+      border: 1px solid var(--warn); color: var(--warn); line-height: 1.4; flex-shrink: 0;
+    }
+
+    /* ── Output ──────────────────────────────────────────────────────────── */
+    .hash-box {
+      flex: 1; min-height: 0; overflow-y: auto;
+      background: var(--surface-deep); border: 1px solid var(--border); border-radius: var(--r);
+      padding: 10px 12px; font-family: var(--mono); font-size: 0.85rem;
+      line-height: 1.65; word-break: break-all; white-space: pre-wrap; color: var(--text);
+    }
+    .status { font-size: 0.73rem; flex-shrink: 0; color: var(--text-dim); min-height: 1.1em; }
+    .compare-badge {
+      font-size: 0.78rem; flex-shrink: 0; padding: 5px 10px; border-radius: var(--r);
+      display: none; border: 1px solid;
+    }
+    .compare-badge.match {
+      display: block; border-color: var(--success); color: var(--success);
+      background: color-mix(in srgb, var(--success) 8%, transparent);
+    }
+    .compare-badge.mismatch {
+      display: block; border-color: var(--error); color: var(--error);
+      background: color-mix(in srgb, var(--error) 8%, transparent);
+    }
+    .action-row { display: flex; gap: 8px; flex-shrink: 0; }
+    .btn {
+      flex: 1; padding: 7px 0; border-radius: var(--r); border: none;
+      font-size: 0.8rem; font-weight: 500; cursor: pointer; transition: background 0.15s, opacity 0.15s;
+    }
+    .btn:disabled { opacity: 0.35; cursor: not-allowed; }
+    .btn-ghost { background: transparent; border: 1px solid var(--border); color: var(--text); }
+    .btn-ghost:not(:disabled):hover { background: var(--surface-hover); }
+    .hidden { display: none !important; }
+  </style>
+</head>
+<body>
+  <header>
+    <a href="index.html">← Utils</a>
+    <h1>Hash</h1>
+    <div class="header-spacer"></div>
+    <button class="theme-toggle" id="theme-toggle" aria-label="Toggle theme" title="Toggle theme"></button>
+  </header>
+
+  <main>
+    <!-- Input -->
+    <div class="panel">
+      <span class="label">Input</span>
+      <textarea id="input" placeholder="Text to hash…" spellcheck="false"></textarea>
+    </div>
+
+    <!-- Options -->
+    <div class="options-panel">
+      <div class="opt-group">
+        <div class="opt-title">Algorithm</div>
+        <div class="opt-row">
+          <label><input type="radio" name="algo" value="MD5"> MD5</label>
+          <span class="weak-badge">legacy</span>
+        </div>
+        <div class="opt-row">
+          <label><input type="radio" name="algo" value="SHA-1"> SHA-1</label>
+          <span class="weak-badge">weak</span>
+        </div>
+        <div class="opt-row"><label><input type="radio" name="algo" value="SHA-256" checked> SHA-256</label></div>
+        <div class="opt-row"><label><input type="radio" name="algo" value="SHA-384"> SHA-384</label></div>
+        <div class="opt-row"><label><input type="radio" name="algo" value="SHA-512"> SHA-512</label></div>
+        <div class="opt-row"><label><input type="radio" name="algo" value="HMAC-SHA-256"> HMAC-SHA-256</label></div>
+        <div class="opt-row"><label><input type="radio" name="algo" value="HMAC-SHA-384"> HMAC-SHA-384</label></div>
+        <div class="opt-row"><label><input type="radio" name="algo" value="HMAC-SHA-512"> HMAC-SHA-512</label></div>
+      </div>
+
+      <div class="opt-group hidden" id="hmac-group">
+        <div class="opt-title">HMAC Secret</div>
+        <input class="text-input" type="text" id="hmac-key" placeholder="Secret key (UTF-8)…" spellcheck="false" autocomplete="off">
+      </div>
+
+      <div class="opt-group">
+        <div class="opt-title">Output Format</div>
+        <div class="opt-row"><label><input type="radio" name="fmt" value="hex" checked> Hex</label></div>
+        <div class="opt-row"><label><input type="radio" name="fmt" value="base64"> Base64</label></div>
+        <div class="opt-row"><label><input type="radio" name="fmt" value="base64url"> Base64url</label></div>
+        <div class="opt-row" id="upper-row">
+          <label><input type="checkbox" id="uppercase"> Uppercase</label>
+        </div>
+      </div>
+
+      <div class="opt-group">
+        <div class="opt-title">Compare</div>
+        <input class="text-input" type="text" id="compare" placeholder="Paste hash to compare…" spellcheck="false" autocomplete="off">
+        <span class="hint">Case-insensitive comparison</span>
+      </div>
+    </div>
+
+    <!-- Output -->
+    <div class="panel">
+      <span class="label">Hash</span>
+      <div class="hash-box" id="hash-out"></div>
+      <div class="status" id="status"></div>
+      <div class="compare-badge" id="compare-badge"></div>
+      <div class="action-row">
+        <button class="btn btn-ghost" id="btn-copy" disabled>Copy</button>
+      </div>
+    </div>
+  </main>
+
+  <script>
+    // ── MD5 (pure JS, RFC 1321) ────────────────────────────────────────────
+    function md5(bytes) {
+      function add32(x, y) {
+        const lsw = (x & 0xFFFF) + (y & 0xFFFF);
+        return ((x >> 16) + (y >> 16) + (lsw >> 16)) << 16 | lsw & 0xFFFF;
+      }
+      function rol(v, n) { return v << n | v >>> (32 - n); }
+      const K = [
+        0xd76aa478,0xe8c7b756,0x242070db,0xc1bdceee,0xf57c0faf,0x4787c62a,0xa8304613,0xfd469501,
+        0x698098d8,0x8b44f7af,0xffff5bb1,0x895cd7be,0x6b901122,0xfd987193,0xa679438e,0x49b40821,
+        0xf61e2562,0xc040b340,0x265e5a51,0xe9b6c7aa,0xd62f105d,0x02441453,0xd8a1e681,0xe7d3fbc8,
+        0x21e1cde6,0xc33707d6,0xf4d50d87,0x455a14ed,0xa9e3e905,0xfcefa3f8,0x676f02d9,0x8d2a4c8a,
+        0xfffa3942,0x8771f681,0x6d9d6122,0xfde5380c,0xa4beea44,0x4bdecfa9,0xf6bb4b60,0xbebfbc70,
+        0x289b7ec6,0xeaa127fa,0xd4ef3085,0x04881d05,0xd9d4d039,0xe6db99e5,0x1fa27cf8,0xc4ac5665,
+        0xf4292244,0x432aff97,0xab9423a7,0xfc93a039,0x655b59c3,0x8f0ccc92,0xffeff47d,0x85845dd1,
+        0x6fa87e4f,0xfe2ce6e0,0xa3014314,0x4e0811a1,0xf7537e82,0xbd3af235,0x2ad7d2bb,0xeb86d391
+      ];
+      const S = [
+        7,12,17,22, 7,12,17,22, 7,12,17,22, 7,12,17,22,
+        5, 9,14,20, 5, 9,14,20, 5, 9,14,20, 5, 9,14,20,
+        4,11,16,23, 4,11,16,23, 4,11,16,23, 4,11,16,23,
+        6,10,15,21, 6,10,15,21, 6,10,15,21, 6,10,15,21
+      ];
+      const len = bytes.length;
+      const padLen = Math.ceil((len + 9) / 64) * 64;
+      const pad = new Uint8Array(padLen);
+      pad.set(bytes); pad[len] = 0x80;
+      const dv = new DataView(pad.buffer);
+      dv.setUint32(padLen - 8, (len * 8) >>> 0, true);
+      dv.setUint32(padLen - 4, Math.floor(len / 0x20000000), true);
+      let a = 0x67452301, b = 0xefcdab89, c = 0x98badcfe, d = 0x10325476;
+      for (let o = 0; o < padLen; o += 64) {
+        const M = Array.from({length: 16}, (_, i) => dv.getInt32(o + i * 4, true));
+        let A = a, B = b, C = c, D = d;
+        for (let n = 0; n < 64; n++) {
+          let F, g;
+          if      (n < 16) { F = B & C | ~B & D; g = n; }
+          else if (n < 32) { F = D & B | ~D & C; g = (5 * n + 1) % 16; }
+          else if (n < 48) { F = B ^ C ^ D;       g = (3 * n + 5) % 16; }
+          else             { F = C ^ (B | ~D);    g = (7 * n) % 16; }
+          const T = D; D = C; C = B;
+          B = add32(B, rol(add32(add32(A, F), add32(K[n], M[g])), S[n]));
+          A = T;
+        }
+        a = add32(a, A); b = add32(b, B); c = add32(c, C); d = add32(d, D);
+      }
+      const out = new Uint8Array(16); const ov = new DataView(out.buffer);
+      ov.setInt32(0, a, true); ov.setInt32(4, b, true);
+      ov.setInt32(8, c, true); ov.setInt32(12, d, true);
+      return out;
+    }
+
+    // ── Encoding helpers ───────────────────────────────────────────────────
+    function toHex(bytes, upper) {
+      const h = Array.from(bytes, b => b.toString(16).padStart(2, '0')).join('');
+      return upper ? h.toUpperCase() : h;
+    }
+    function toBase64(bytes) {
+      let bin = ''; for (const b of bytes) bin += String.fromCharCode(b);
+      return btoa(bin);
+    }
+    function toBase64url(bytes) {
+      return toBase64(bytes).replace(/\+/g, '-').replace(/\//g, '_').replace(/=/g, '');
+    }
+
+    // ── Hash computation ───────────────────────────────────────────────────
+    async function computeHash(algo, data, hmacKeyStr) {
+      if (algo === 'MD5') return md5(data);
+      if (algo.startsWith('HMAC-')) {
+        const sha = algo.slice(5); // 'SHA-256', 'SHA-384', 'SHA-512'
+        const key = await crypto.subtle.importKey(
+          'raw', new TextEncoder().encode(hmacKeyStr),
+          { name: 'HMAC', hash: { name: sha } },
+          false, ['sign']
+        );
+        return new Uint8Array(await crypto.subtle.sign('HMAC', key, data));
+      }
+      return new Uint8Array(await crypto.subtle.digest(algo, data));
+    }
+
+    // ── UI refs ────────────────────────────────────────────────────────────
+    const inputEl    = document.getElementById('input');
+    const hashOut    = document.getElementById('hash-out');
+    const statusEl   = document.getElementById('status');
+    const cmpBadge   = document.getElementById('compare-badge');
+    const hmacGrp    = document.getElementById('hmac-group');
+    const hmacKeyEl  = document.getElementById('hmac-key');
+    const compareEl  = document.getElementById('compare');
+    const upperRow   = document.getElementById('upper-row');
+    const uppercaseEl = document.getElementById('uppercase');
+    const btnCopy    = document.getElementById('btn-copy');
+
+    let lastHash = null;
+    let generation = 0;
+
+    function getAlgo() { return document.querySelector('[name="algo"]:checked').value; }
+    function getFmt()  { return document.querySelector('[name="fmt"]:checked').value; }
+
+    function formatHash(bytes) {
+      const fmt = getFmt(), upper = uppercaseEl.checked;
+      if (fmt === 'hex')       return toHex(bytes, upper);
+      if (fmt === 'base64')    return toBase64(bytes);
+      if (fmt === 'base64url') return toBase64url(bytes);
+      return '';
+    }
+
+    function updateCompare(hashStr) {
+      const cmp = compareEl.value.trim();
+      if (!cmp || !hashStr) { cmpBadge.className = 'compare-badge'; return; }
+      const match = cmp.toLowerCase() === hashStr.toLowerCase();
+      cmpBadge.className = 'compare-badge ' + (match ? 'match' : 'mismatch');
+      cmpBadge.textContent = match ? '✓ Hashes match' : '✗ Hashes differ';
+    }
+
+    async function update() {
+      const gen = ++generation;
+      const algo = getAlgo();
+      const text = inputEl.value;
+
+      hmacGrp.classList.toggle('hidden', !algo.startsWith('HMAC-'));
+      upperRow.classList.toggle('hidden', getFmt() !== 'hex');
+
+      if (!text) {
+        hashOut.textContent = '';
+        statusEl.textContent = '';
+        cmpBadge.className = 'compare-badge';
+        btnCopy.disabled = true;
+        lastHash = null;
+        return;
+      }
+      if (algo.startsWith('HMAC-') && !hmacKeyEl.value) {
+        hashOut.textContent = '';
+        statusEl.textContent = 'Enter a secret key to compute HMAC';
+        btnCopy.disabled = true;
+        return;
+      }
+
+      try {
+        const data = new TextEncoder().encode(text);
+        const hashBytes = await computeHash(algo, data, hmacKeyEl.value);
+        if (gen !== generation) return;
+        lastHash = hashBytes;
+        const result = formatHash(hashBytes);
+        hashOut.textContent = result;
+        statusEl.textContent = `${hashBytes.length * 8} bits · ${hashBytes.length} bytes`;
+        btnCopy.disabled = false;
+        updateCompare(result);
+      } catch (e) {
+        if (gen !== generation) return;
+        hashOut.textContent = '';
+        statusEl.textContent = 'Error: ' + (e.message || 'Unknown error');
+        btnCopy.disabled = true;
+        lastHash = null;
+      }
+    }
+
+    inputEl.addEventListener('input', update);
+    hmacKeyEl.addEventListener('input', update);
+    document.querySelectorAll('[name="algo"], [name="fmt"]').forEach(el => el.addEventListener('change', update));
+    uppercaseEl.addEventListener('change', () => {
+      if (lastHash) {
+        const result = formatHash(lastHash);
+        hashOut.textContent = result;
+        updateCompare(result);
+      }
+    });
+    compareEl.addEventListener('input', () => {
+      if (lastHash) updateCompare(formatHash(lastHash));
+    });
+    btnCopy.addEventListener('click', async () => {
+      const text = hashOut.textContent;
+      try { await navigator.clipboard.writeText(text); } catch { /* clipboard unavailable */ }
+      const prev = btnCopy.textContent;
+      btnCopy.textContent = 'Copied!';
+      setTimeout(() => { btnCopy.textContent = prev; }, 1500);
+    });
+
+    update();
+  </script>
+
+  <script>
+    // ── Theme ──────────────────────────────────────────────────────────────
+    const SUN_SVG = `<svg width="15" height="15" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round"><circle cx="12" cy="12" r="5"/><line x1="12" y1="1" x2="12" y2="3"/><line x1="12" y1="21" x2="12" y2="23"/><line x1="4.22" y1="4.22" x2="5.64" y2="5.64"/><line x1="18.36" y1="18.36" x2="19.78" y2="19.78"/><line x1="1" y1="12" x2="3" y2="12"/><line x1="21" y1="12" x2="23" y2="12"/><line x1="4.22" y1="19.78" x2="5.64" y2="18.36"/><line x1="18.36" y1="5.64" x2="19.78" y2="4.22"/></svg>`;
+    const MOON_SVG = `<svg width="15" height="15" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round"><path d="M21 12.79A9 9 0 1 1 11.21 3 7 7 0 0 0 21 12.79z"/></svg>`;
+    const toggleBtn = document.getElementById('theme-toggle');
+    function applyTheme(theme) {
+      document.documentElement.dataset.theme = theme;
+      localStorage.setItem('utils-theme', theme);
+      const isDark = theme === 'dark';
+      toggleBtn.innerHTML = isDark ? SUN_SVG : MOON_SVG;
+      toggleBtn.setAttribute('aria-label', isDark ? 'Switch to light mode' : 'Switch to dark mode');
+      toggleBtn.setAttribute('title', isDark ? 'Switch to light mode' : 'Switch to dark mode');
+    }
+    toggleBtn.addEventListener('click', () => {
+      applyTheme(document.documentElement.dataset.theme === 'dark' ? 'light' : 'dark');
+    });
+    applyTheme(document.documentElement.dataset.theme);
+  </script>
+</body>
+</html>

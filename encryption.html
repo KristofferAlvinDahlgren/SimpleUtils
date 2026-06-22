@@ -1,0 +1,611 @@
+<!DOCTYPE html>
+<html lang="en" data-theme="dark">
+<head>
+  <meta charset="UTF-8">
+  <meta name="viewport" content="width=device-width, initial-scale=1.0">
+  <title>Encryption — Utils</title>
+  <script>
+    (function () {
+      const saved = localStorage.getItem('utils-theme');
+      const preferred = saved || (window.matchMedia('(prefers-color-scheme: light)').matches ? 'light' : 'dark');
+      document.documentElement.dataset.theme = preferred;
+    })();
+  </script>
+  <style>
+    *, *::before, *::after { box-sizing: border-box; margin: 0; padding: 0; }
+    :root {
+      --bg: #1e1e1e; --surface: #252526; --surface-hover: #2a2d2e;
+      --surface-deep: #222222;
+      --border: #3c3c3c; --accent: #0078d4; --accent-hover: #106ebe;
+      --text: #d4d4d4; --text-dim: #888;
+      --mono: 'Cascadia Code', Consolas, 'Courier New', monospace;
+      --r: 5px;
+      --success: #4ec9b0; --warn: #dcdcaa; --error: #f44747;
+    }
+    [data-theme="light"] {
+      --bg: #f8f8f8; --surface: #ffffff; --surface-hover: #f0f0f0;
+      --surface-deep: #ebebeb;
+      --border: #d0d0d0; --accent: #0078d4; --accent-hover: #106ebe;
+      --text: #1f1f1f; --text-dim: #767676;
+      --success: #0e7a6e; --warn: #7a6400; --error: #c72e2e;
+    }
+    body {
+      font-family: -apple-system, BlinkMacSystemFont, 'Segoe UI', sans-serif;
+      background: var(--bg); color: var(--text);
+      height: 100vh; display: grid; grid-template-rows: auto 1fr; overflow: hidden;
+    }
+    header {
+      display: flex; align-items: center; gap: 16px;
+      padding: 0 20px; height: 48px; border-bottom: 1px solid var(--border);
+      flex-shrink: 0;
+    }
+    header a { color: var(--text-dim); text-decoration: none; font-size: 0.82rem; }
+    header a:hover { color: var(--text); }
+    header h1 { font-size: 1rem; font-weight: 600; }
+    .header-spacer { flex: 1; }
+    .theme-toggle {
+      display: flex; align-items: center; justify-content: center;
+      width: 30px; height: 30px; padding: 0;
+      border: 1px solid var(--border); border-radius: var(--r);
+      background: transparent; color: var(--text-dim);
+      cursor: pointer; flex-shrink: 0;
+      transition: background 0.15s, color 0.15s, border-color 0.15s;
+    }
+    .theme-toggle:hover { background: var(--surface-hover); color: var(--text); border-color: var(--accent); }
+    .theme-toggle svg { display: block; pointer-events: none; }
+
+    main {
+      display: grid; grid-template-columns: 1fr 250px 1fr;
+      min-height: 0; overflow: hidden;
+    }
+    .panel {
+      display: flex; flex-direction: column;
+      padding: 14px; gap: 10px; min-height: 0; overflow: hidden;
+      border-right: 1px solid var(--border);
+    }
+    .panel:last-child { border-right: none; }
+    .label {
+      font-size: 0.68rem; font-weight: 700; text-transform: uppercase;
+      letter-spacing: 0.1em; color: var(--text-dim); flex-shrink: 0;
+    }
+    textarea {
+      flex: 1; min-height: 0; resize: none;
+      background: var(--surface); border: 1px solid var(--border);
+      border-radius: var(--r); color: var(--text);
+      font-family: var(--mono); font-size: 0.85rem; line-height: 1.65;
+      padding: 10px 12px; outline: none; transition: border-color 0.15s;
+    }
+    textarea:focus { border-color: var(--accent); }
+    textarea[readonly] { background: var(--surface-deep); cursor: default; }
+
+    /* ── Options ─────────────────────────────────────────────────────────── */
+    .options-panel {
+      display: flex; flex-direction: column; gap: 14px;
+      padding: 14px; overflow-y: auto; min-height: 0;
+      border-right: 1px solid var(--border);
+    }
+    .opt-group { display: flex; flex-direction: column; gap: 8px; }
+    .opt-title {
+      font-size: 0.68rem; font-weight: 700; text-transform: uppercase;
+      letter-spacing: 0.1em; color: var(--text-dim);
+      border-bottom: 1px solid var(--border); padding-bottom: 5px;
+    }
+    .opt-row { display: flex; align-items: center; gap: 8px; font-size: 0.83rem; }
+    .opt-row label { display: flex; align-items: center; gap: 6px; cursor: pointer; user-select: none; }
+    input[type="radio"], input[type="checkbox"] {
+      width: 14px; height: 14px; cursor: pointer; accent-color: var(--accent); flex-shrink: 0;
+    }
+    .text-input {
+      background: var(--surface); border: 1px solid var(--border); border-radius: var(--r);
+      color: var(--text); font-family: var(--mono); font-size: 0.78rem;
+      padding: 5px 8px; outline: none; transition: border-color 0.15s; width: 100%;
+    }
+    .text-input:focus { border-color: var(--accent); }
+    .pass-row { display: flex; gap: 6px; }
+    .pass-row .text-input { flex: 1; min-width: 0; }
+    .btn-sm {
+      flex-shrink: 0; padding: 4px 8px; border-radius: var(--r);
+      border: 1px solid var(--border); background: transparent;
+      color: var(--text-dim); cursor: pointer; font-size: 0.73rem;
+      transition: background 0.15s, color 0.15s;
+    }
+    .btn-sm:hover { background: var(--surface-hover); color: var(--text); }
+    .hint { font-size: 0.72rem; color: var(--text-dim); line-height: 1.4; }
+    .warn-hint { font-size: 0.72rem; color: var(--warn); line-height: 1.4; }
+    .rec-badge {
+      font-size: 0.62rem; padding: 1px 4px; border-radius: 3px;
+      border: 1px solid var(--success); color: var(--success); line-height: 1.4; flex-shrink: 0;
+    }
+
+    /* ── Buttons ─────────────────────────────────────────────────────────── */
+    .action-row { display: flex; gap: 8px; flex-shrink: 0; }
+    .btn {
+      flex: 1; padding: 7px 0; border-radius: var(--r); border: none;
+      font-size: 0.8rem; font-weight: 500; cursor: pointer; transition: background 0.15s, opacity 0.15s;
+    }
+    .btn:disabled { opacity: 0.35; cursor: not-allowed; }
+    .btn-primary { background: var(--accent); color: #fff; }
+    .btn-primary:not(:disabled):hover { background: var(--accent-hover); }
+    .btn-ghost { background: transparent; border: 1px solid var(--border); color: var(--text); }
+    .btn-ghost:not(:disabled):hover { background: var(--surface-hover); }
+
+    /* ── Output ──────────────────────────────────────────────────────────── */
+    .status { font-size: 0.73rem; flex-shrink: 0; min-height: 1.1em; color: var(--text-dim); }
+    .status.ok  { color: var(--success); }
+    .status.err { color: var(--error); }
+
+    /* Detail block */
+    .detail-block {
+      flex-shrink: 0; background: var(--surface-deep);
+      border: 1px solid var(--border); border-radius: var(--r);
+      padding: 8px 10px; display: flex; flex-direction: column; gap: 6px;
+    }
+    .detail-title {
+      font-size: 0.65rem; font-weight: 700; text-transform: uppercase;
+      letter-spacing: 0.1em; color: var(--text-dim);
+    }
+    .detail-row { display: flex; align-items: baseline; gap: 8px; font-size: 0.73rem; }
+    .detail-label { flex-shrink: 0; width: 58px; color: var(--text-dim); }
+    .detail-value {
+      flex: 1; min-width: 0; font-family: var(--mono); word-break: break-all;
+      color: var(--text); font-style: normal;
+    }
+    .icon-copy {
+      flex-shrink: 0; padding: 1px 5px; border-radius: 3px;
+      border: 1px solid var(--border); background: transparent;
+      color: var(--text-dim); cursor: pointer; font-size: 0.75rem;
+      transition: background 0.15s, color 0.15s;
+    }
+    .icon-copy:hover { background: var(--surface-hover); color: var(--text); }
+
+    .hidden { display: none !important; }
+  </style>
+</head>
+<body>
+  <header>
+    <a href="index.html">← Utils</a>
+    <h1>Encryption</h1>
+    <div class="header-spacer"></div>
+    <button class="theme-toggle" id="theme-toggle" aria-label="Toggle theme" title="Toggle theme"></button>
+  </header>
+
+  <main>
+    <!-- Input -->
+    <div class="panel">
+      <span class="label" id="input-label">Plaintext</span>
+      <textarea id="input" placeholder="Enter text to encrypt…" spellcheck="false"></textarea>
+      <div class="action-row">
+        <button class="btn btn-primary" id="btn-run">Encrypt</button>
+      </div>
+    </div>
+
+    <!-- Options -->
+    <div class="options-panel">
+      <div class="opt-group">
+        <div class="opt-title">Mode</div>
+        <div class="opt-row"><label><input type="radio" name="mode" value="encrypt" checked> Encrypt</label></div>
+        <div class="opt-row"><label><input type="radio" name="mode" value="decrypt"> Decrypt</label></div>
+      </div>
+
+      <div class="opt-group">
+        <div class="opt-title">Algorithm</div>
+        <div class="opt-row">
+          <label><input type="radio" name="algo" value="AES-GCM-256" checked> AES-GCM-256</label>
+          <span class="rec-badge">recommended</span>
+        </div>
+        <div class="opt-row"><label><input type="radio" name="algo" value="AES-GCM-128"> AES-GCM-128</label></div>
+        <div class="opt-row"><label><input type="radio" name="algo" value="AES-CBC-256"> AES-CBC-256</label></div>
+        <div class="opt-row"><label><input type="radio" name="algo" value="AES-CBC-128"> AES-CBC-128</label></div>
+        <div class="warn-hint hidden" id="cbc-note">CBC mode has no authentication — ciphertext integrity is not verified on decryption</div>
+      </div>
+
+      <div class="opt-group">
+        <div class="opt-title">Key Source</div>
+        <div class="opt-row"><label><input type="radio" name="keysrc" value="passphrase" checked> Passphrase</label></div>
+        <div class="opt-row"><label><input type="radio" name="keysrc" value="hex"> Hex key</label></div>
+        <div class="opt-row"><label><input type="radio" name="keysrc" value="base64"> Base64 key</label></div>
+      </div>
+
+      <div class="opt-group">
+        <div class="opt-title" id="key-label">Passphrase</div>
+        <div class="pass-row" id="passphrase-row">
+          <input class="text-input" type="password" id="passphrase" placeholder="Enter passphrase…" autocomplete="new-password" spellcheck="false">
+          <button class="btn-sm" id="toggle-pass">Show</button>
+        </div>
+        <span class="hint" id="pbkdf2-hint">PBKDF2-SHA256, 100 000 iterations</span>
+
+        <input class="text-input hidden" type="text" id="raw-key" placeholder="Paste key here…" autocomplete="off" spellcheck="false">
+        <span class="hint hidden" id="keylength-hint"></span>
+        <button class="btn btn-ghost hidden" id="btn-gen-key" style="padding:6px 0;font-size:0.78rem">Generate key</button>
+      </div>
+
+      <div class="opt-group">
+        <div class="opt-title">Encoding</div>
+        <div class="opt-row"><label><input type="radio" name="enc" value="hex" checked> Hex</label></div>
+        <div class="opt-row"><label><input type="radio" name="enc" value="base64"> Base64</label></div>
+        <span class="hint" id="enc-hint">Encoding used for the ciphertext output</span>
+      </div>
+    </div>
+
+    <!-- Output -->
+    <div class="panel">
+      <span class="label" id="output-label">Ciphertext</span>
+      <textarea id="result" readonly placeholder="Output appears here…" spellcheck="false"></textarea>
+      <div class="detail-block hidden" id="detail-block">
+        <div class="detail-title">Session details</div>
+        <div class="detail-row">
+          <span class="detail-label">Algorithm</span>
+          <em class="detail-value" id="d-algo"></em>
+        </div>
+        <div class="detail-row">
+          <span class="detail-label">Key</span>
+          <code class="detail-value" id="d-key"></code>
+          <button class="icon-copy" id="copy-key" title="Copy key">⧉</button>
+        </div>
+        <div class="detail-row hidden" id="d-salt-row">
+          <span class="detail-label">Salt</span>
+          <code class="detail-value" id="d-salt"></code>
+          <button class="icon-copy" id="copy-salt" title="Copy salt">⧉</button>
+        </div>
+        <div class="detail-row">
+          <span class="detail-label">IV</span>
+          <code class="detail-value" id="d-iv"></code>
+          <button class="icon-copy" id="copy-iv" title="Copy IV">⧉</button>
+        </div>
+      </div>
+      <div class="status" id="status"></div>
+      <div class="action-row">
+        <button class="btn btn-ghost" id="btn-copy" disabled>Copy</button>
+        <button class="btn btn-ghost hidden" id="btn-commit" title="Replace input with decrypted output">Commit</button>
+      </div>
+    </div>
+  </main>
+
+  <script>
+    // ── Helpers ────────────────────────────────────────────────────────────
+    function toHex(bytes) {
+      return Array.from(bytes, b => b.toString(16).padStart(2, '0')).join('');
+    }
+    function toBase64(bytes) {
+      let bin = ''; for (const b of bytes) bin += String.fromCharCode(b);
+      return btoa(bin);
+    }
+    function hexToBytes(hex) {
+      hex = hex.replace(/\s+/g, '');
+      if (!hex) throw new Error('Key is empty');
+      if (hex.length % 2 !== 0) throw new Error('Odd-length hex string');
+      if (!/^[0-9a-fA-F]+$/.test(hex)) throw new Error('Non-hex characters found');
+      return Uint8Array.from(hex.match(/.{2}/g), h => parseInt(h, 16));
+    }
+    function base64ToBytes(b64) {
+      try {
+        const s = b64.trim().replace(/-/g, '+').replace(/_/g, '/');
+        const padded = s + '==='.slice((s.length + 3) % 4);
+        const bin = atob(padded);
+        return Uint8Array.from(bin, c => c.charCodeAt(0));
+      } catch {
+        throw new Error('Invalid Base64');
+      }
+    }
+    function concatBytes(...arrays) {
+      const total = arrays.reduce((s, a) => s + a.length, 0);
+      const out = new Uint8Array(total);
+      let pos = 0;
+      for (const a of arrays) { out.set(a, pos); pos += a.length; }
+      return out;
+    }
+    function parseAlgo(val) {
+      // val = 'AES-GCM-256' → { name: 'AES-GCM', keyLength: 256 }
+      const m = val.match(/^(AES-\w+)-(\d+)$/);
+      return { name: m[1], keyLength: parseInt(m[2]) };
+    }
+    async function copyText(text) {
+      try { await navigator.clipboard.writeText(text); } catch { /* unavailable */ }
+    }
+
+    // ── Key derivation / import ────────────────────────────────────────────
+    async function buildKey(keySrc, keyVal, algoName, keyLength, salt, usage) {
+      if (keySrc === 'passphrase') {
+        if (!keyVal) throw new Error('Passphrase is empty');
+        const passBytes = new TextEncoder().encode(keyVal);
+        const passKey = await crypto.subtle.importKey('raw', passBytes, 'PBKDF2', false, ['deriveKey']);
+        return crypto.subtle.deriveKey(
+          { name: 'PBKDF2', salt, iterations: 100000, hash: 'SHA-256' },
+          passKey,
+          { name: algoName, length: keyLength },
+          true, usage
+        );
+      }
+      if (!keyVal.trim()) throw new Error('Key is empty');
+      const keyBytes = keySrc === 'hex' ? hexToBytes(keyVal) : base64ToBytes(keyVal);
+      const expected = keyLength / 8;
+      if (keyBytes.length !== expected)
+        throw new Error(`Key must be ${expected} bytes (${keyLength} bits); got ${keyBytes.length}`);
+      return crypto.subtle.importKey('raw', keyBytes, { name: algoName, length: keyLength }, true, usage);
+    }
+
+    // ── Encrypt / Decrypt ──────────────────────────────────────────────────
+    async function doEncrypt(algo, keySrc, keyVal, enc) {
+      const { name: algoName, keyLength } = parseAlgo(algo);
+      const plaintext = new TextEncoder().encode(inputEl.value);
+      if (!plaintext.length) throw new Error('Input is empty');
+
+      const ivLen  = algoName === 'AES-GCM' ? 12 : 16;
+      const salt   = keySrc === 'passphrase' ? crypto.getRandomValues(new Uint8Array(16)) : null;
+      const iv     = crypto.getRandomValues(new Uint8Array(ivLen));
+      const cryptoKey = await buildKey(keySrc, keyVal, algoName, keyLength, salt, ['encrypt']);
+
+      const params = algoName === 'AES-GCM'
+        ? { name: 'AES-GCM', iv, tagLength: 128 }
+        : { name: 'AES-CBC', iv };
+      const cipherBuf  = await crypto.subtle.encrypt(params, cryptoKey, plaintext);
+      const ciphertext = new Uint8Array(cipherBuf);
+
+      const combined = salt ? concatBytes(salt, iv, ciphertext) : concatBytes(iv, ciphertext);
+      const result   = enc === 'hex' ? toHex(combined) : toBase64(combined);
+      const rawKey   = new Uint8Array(await crypto.subtle.exportKey('raw', cryptoKey));
+
+      return { result, keyHex: toHex(rawKey), salt, iv };
+    }
+
+    async function doDecrypt(algo, keySrc, keyVal, enc) {
+      const { name: algoName, keyLength } = parseAlgo(algo);
+      const raw = resultEl.value.trim(); // decrypt reads from output panel? No — from input
+
+      // For decrypt, ciphertext is in the input textarea
+      const encodedInput = inputEl.value.trim();
+      if (!encodedInput) throw new Error('Input is empty');
+
+      let combined;
+      try {
+        combined = enc === 'hex' ? hexToBytes(encodedInput) : base64ToBytes(encodedInput);
+      } catch (e) {
+        throw new Error('Cannot decode input: ' + e.message);
+      }
+
+      const ivLen = algoName === 'AES-GCM' ? 12 : 16;
+      let offset = 0;
+      let salt = null;
+
+      if (keySrc === 'passphrase') {
+        const minLen = 16 + ivLen + (algoName === 'AES-GCM' ? 17 : 1);
+        if (combined.length < minLen) throw new Error('Input is too short to be valid ciphertext');
+        salt = combined.slice(0, 16);
+        offset = 16;
+      } else if (combined.length < ivLen + 1) {
+        throw new Error('Input is too short to be valid ciphertext');
+      }
+
+      const iv         = combined.slice(offset, offset + ivLen);
+      const ciphertext = combined.slice(offset + ivLen);
+      const cryptoKey  = await buildKey(keySrc, keyVal, algoName, keyLength, salt, ['decrypt']);
+
+      const params = algoName === 'AES-GCM'
+        ? { name: 'AES-GCM', iv, tagLength: 128 }
+        : { name: 'AES-CBC', iv };
+
+      let plainBuf;
+      try {
+        plainBuf = await crypto.subtle.decrypt(params, cryptoKey, ciphertext);
+      } catch {
+        throw new Error('Decryption failed — wrong key, passphrase, or corrupted data');
+      }
+
+      const plaintext = new TextDecoder().decode(plainBuf);
+      const rawKey    = new Uint8Array(await crypto.subtle.exportKey('raw', cryptoKey));
+
+      return { result: plaintext, keyHex: toHex(rawKey), salt, iv };
+    }
+
+    // ── UI refs ────────────────────────────────────────────────────────────
+    const inputEl       = document.getElementById('input');
+    const resultEl      = document.getElementById('result');
+    const inputLabelEl  = document.getElementById('input-label');
+    const outputLabelEl = document.getElementById('output-label');
+    const btnRun        = document.getElementById('btn-run');
+    const btnCopy       = document.getElementById('btn-copy');
+    const btnCommit     = document.getElementById('btn-commit');
+    const statusEl      = document.getElementById('status');
+    const detailBlock   = document.getElementById('detail-block');
+    const dAlgo         = document.getElementById('d-algo');
+    const dKey          = document.getElementById('d-key');
+    const dSalt         = document.getElementById('d-salt');
+    const dIv           = document.getElementById('d-iv');
+    const dSaltRow      = document.getElementById('d-salt-row');
+    const keyLabelEl    = document.getElementById('key-label');
+    const passphraseRow = document.getElementById('passphrase-row');
+    const pbkdf2Hint    = document.getElementById('pbkdf2-hint');
+    const passphraseEl  = document.getElementById('passphrase');
+    const togglePassBtn = document.getElementById('toggle-pass');
+    const rawKeyEl      = document.getElementById('raw-key');
+    const keylenHintEl  = document.getElementById('keylength-hint');
+    const btnGenKey     = document.getElementById('btn-gen-key');
+    const cbcNote       = document.getElementById('cbc-note');
+    const encHintEl     = document.getElementById('enc-hint');
+
+    let lastResult = null;
+
+    function getMode()   { return document.querySelector('[name="mode"]:checked').value; }
+    function getAlgo()   { return document.querySelector('[name="algo"]:checked').value; }
+    function getKeySrc() { return document.querySelector('[name="keysrc"]:checked').value; }
+    function getEnc()    { return document.querySelector('[name="enc"]:checked').value; }
+    function getKeyVal() {
+      return getKeySrc() === 'passphrase' ? passphraseEl.value : rawKeyEl.value;
+    }
+
+    function updateUI() {
+      const mode   = getMode();
+      const keySrc = getKeySrc();
+      const algo   = getAlgo();
+      const { keyLength } = parseAlgo(algo);
+      const enc    = getEnc();
+
+      // Labels & placeholders
+      inputLabelEl.textContent  = mode === 'encrypt' ? 'Plaintext' : 'Ciphertext';
+      outputLabelEl.textContent = mode === 'encrypt' ? 'Ciphertext' : 'Plaintext';
+      inputEl.placeholder = mode === 'encrypt' ? 'Enter text to encrypt…' : 'Paste encoded ciphertext…';
+      btnRun.textContent  = mode === 'encrypt' ? 'Encrypt' : 'Decrypt';
+      btnCommit.classList.toggle('hidden', true); // always hide until success
+
+      // Key source
+      const isPass = keySrc === 'passphrase';
+      keyLabelEl.textContent = isPass ? 'Passphrase' : 'Key';
+      passphraseRow.classList.toggle('hidden', !isPass);
+      pbkdf2Hint.classList.toggle('hidden', !isPass);
+      rawKeyEl.classList.toggle('hidden', isPass);
+      keylenHintEl.classList.toggle('hidden', isPass);
+      btnGenKey.classList.toggle('hidden', isPass);
+      if (!isPass) {
+        const bytes = keyLength / 8;
+        keylenHintEl.textContent = `${bytes} bytes (${keyLength} bits) · ${keySrc === 'hex' ? bytes * 2 + ' hex chars' : Math.ceil(bytes / 3) * 4 + ' Base64 chars'}`;
+      }
+
+      // CBC warning
+      cbcNote.classList.toggle('hidden', !algo.includes('CBC'));
+
+      // Encoding hint
+      encHintEl.textContent = mode === 'encrypt'
+        ? 'Format used for the ciphertext output'
+        : 'Format the pasted ciphertext is encoded in';
+    }
+
+    function showResult({ result, keyHex, salt, iv }, algo) {
+      resultEl.value = result;
+      dAlgo.textContent = algo;
+      dKey.textContent  = keyHex;
+      dIv.textContent   = toHex(iv);
+      if (salt) {
+        dSalt.textContent = toHex(salt);
+        dSaltRow.classList.remove('hidden');
+      } else {
+        dSaltRow.classList.add('hidden');
+      }
+      detailBlock.classList.remove('hidden');
+      statusEl.textContent = getMode() === 'encrypt' ? 'Encrypted successfully' : 'Decrypted successfully';
+      statusEl.className = 'status ok';
+      btnCopy.disabled = false;
+      lastResult = result;
+      if (getMode() === 'decrypt') {
+        btnCommit.classList.remove('hidden');
+      }
+    }
+
+    // ── Event: Run ─────────────────────────────────────────────────────────
+    btnRun.addEventListener('click', async () => {
+      const mode   = getMode();
+      const algo   = getAlgo();
+      const keySrc = getKeySrc();
+      const keyVal = getKeyVal();
+      const enc    = getEnc();
+
+      btnRun.disabled = true;
+      statusEl.textContent = mode === 'encrypt' ? 'Encrypting…' : 'Decrypting…';
+      statusEl.className = 'status';
+      resultEl.value = '';
+      detailBlock.classList.add('hidden');
+      btnCopy.disabled = true;
+      btnCommit.classList.add('hidden');
+
+      try {
+        const res = mode === 'encrypt'
+          ? await doEncrypt(algo, keySrc, keyVal, enc)
+          : await doDecrypt(algo, keySrc, keyVal, enc);
+        showResult(res, algo);
+      } catch (e) {
+        statusEl.textContent = 'Error: ' + (e.message || 'Operation failed');
+        statusEl.className = 'status err';
+      } finally {
+        btnRun.disabled = false;
+      }
+    });
+
+    // ── Event: Mode / algo / keysrc / enc change ───────────────────────────
+    document.querySelectorAll('[name="mode"], [name="algo"], [name="keysrc"], [name="enc"]')
+      .forEach(el => el.addEventListener('change', () => {
+        updateUI();
+        // Clear output when settings change
+        resultEl.value = '';
+        detailBlock.classList.add('hidden');
+        statusEl.textContent = '';
+        statusEl.className = 'status';
+        btnCopy.disabled = true;
+        btnCommit.classList.add('hidden');
+        lastResult = null;
+      }));
+
+    // ── Event: Show/hide passphrase ────────────────────────────────────────
+    togglePassBtn.addEventListener('click', () => {
+      const isPass = passphraseEl.type === 'password';
+      passphraseEl.type = isPass ? 'text' : 'password';
+      togglePassBtn.textContent = isPass ? 'Hide' : 'Show';
+    });
+
+    // ── Event: Generate key ────────────────────────────────────────────────
+    btnGenKey.addEventListener('click', () => {
+      const { keyLength } = parseAlgo(getAlgo());
+      const keyBytes = crypto.getRandomValues(new Uint8Array(keyLength / 8));
+      rawKeyEl.value = getKeySrc() === 'hex' ? toHex(keyBytes) : toBase64(keyBytes);
+    });
+
+    // ── Event: Copy result ─────────────────────────────────────────────────
+    btnCopy.addEventListener('click', async () => {
+      await copyText(resultEl.value);
+      const prev = btnCopy.textContent;
+      btnCopy.textContent = 'Copied!';
+      setTimeout(() => { btnCopy.textContent = prev; }, 1500);
+    });
+
+    // ── Event: Commit (decrypt → replace input) ────────────────────────────
+    btnCommit.addEventListener('click', () => {
+      if (lastResult === null) return;
+      inputEl.value = lastResult;
+      resultEl.value = '';
+      detailBlock.classList.add('hidden');
+      statusEl.textContent = '';
+      statusEl.className = 'status';
+      btnCopy.disabled = true;
+      btnCommit.classList.add('hidden');
+      lastResult = null;
+      // Switch to encrypt mode
+      document.querySelector('[name="mode"][value="encrypt"]').checked = true;
+      updateUI();
+    });
+
+    // ── Event: Detail copy buttons ─────────────────────────────────────────
+    function makeCopyBtn(btnId, sourceId) {
+      document.getElementById(btnId).addEventListener('click', async () => {
+        const btn = document.getElementById(btnId);
+        await copyText(document.getElementById(sourceId).textContent);
+        const prev = btn.textContent;
+        btn.textContent = '✓';
+        setTimeout(() => { btn.textContent = prev; }, 1200);
+      });
+    }
+    makeCopyBtn('copy-key',  'd-key');
+    makeCopyBtn('copy-salt', 'd-salt');
+    makeCopyBtn('copy-iv',   'd-iv');
+
+    // ── Init ───────────────────────────────────────────────────────────────
+    updateUI();
+  </script>
+
+  <script>
+    // ── Theme ──────────────────────────────────────────────────────────────
+    const SUN_SVG = `<svg width="15" height="15" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round"><circle cx="12" cy="12" r="5"/><line x1="12" y1="1" x2="12" y2="3"/><line x1="12" y1="21" x2="12" y2="23"/><line x1="4.22" y1="4.22" x2="5.64" y2="5.64"/><line x1="18.36" y1="18.36" x2="19.78" y2="19.78"/><line x1="1" y1="12" x2="3" y2="12"/><line x1="21" y1="12" x2="23" y2="12"/><line x1="4.22" y1="19.78" x2="5.64" y2="18.36"/><line x1="18.36" y1="5.64" x2="19.78" y2="4.22"/></svg>`;
+    const MOON_SVG = `<svg width="15" height="15" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round"><path d="M21 12.79A9 9 0 1 1 11.21 3 7 7 0 0 0 21 12.79z"/></svg>`;
+    const toggleBtn = document.getElementById('theme-toggle');
+    function applyTheme(theme) {
+      document.documentElement.dataset.theme = theme;
+      localStorage.setItem('utils-theme', theme);
+      const isDark = theme === 'dark';
+      toggleBtn.innerHTML = isDark ? SUN_SVG : MOON_SVG;
+      toggleBtn.setAttribute('aria-label', isDark ? 'Switch to light mode' : 'Switch to dark mode');
+      toggleBtn.setAttribute('title', isDark ? 'Switch to light mode' : 'Switch to dark mode');
+    }
+    toggleBtn.addEventListener('click', () => {
+      applyTheme(document.documentElement.dataset.theme === 'dark' ? 'light' : 'dark');
+    });
+    applyTheme(document.documentElement.dataset.theme);
+  </script>
+</body>
+</html>

@@ -584,7 +584,33 @@
     makeCopyBtn('copy-key',  'd-key');
     makeCopyBtn('copy-salt', 'd-salt');
     makeCopyBtn('copy-iv',   'd-iv');
-
+    // ── Persistence ─────────────────────────────────────────────────────────
+    const _SK = 'utils-encryption';
+    function _save() {
+      try {
+        localStorage.setItem(_SK, JSON.stringify({
+          input:  inputEl.value,
+          mode:   getMode(),
+          algo:   getAlgo(),
+          keysrc: getKeySrc(),
+          enc:    getEnc(),
+        }));
+      } catch {}
+    }
+    (function _load() {
+      try {
+        const d = JSON.parse(localStorage.getItem(_SK));
+        if (!d) return;
+        if (d.input  !== undefined) inputEl.value = d.input;
+        if (d.mode)  { const r = document.querySelector(`[name="mode"][value="${d.mode}"]`);     if (r) r.checked = true; }
+        if (d.algo)  { const r = document.querySelector(`[name="algo"][value="${d.algo}"]`);     if (r) r.checked = true; }
+        if (d.keysrc){ const r = document.querySelector(`[name="keysrc"][value="${d.keysrc}"]`); if (r) r.checked = true; }
+        if (d.enc)   { const r = document.querySelector(`[name="enc"][value="${d.enc}"]`);       if (r) r.checked = true; }
+      } catch {}
+    })();
+    inputEl.addEventListener('input', _save);
+    document.querySelectorAll('[name="mode"], [name="algo"], [name="keysrc"], [name="enc"]')
+      .forEach(el => el.addEventListener('change', _save));
     // ── Init ───────────────────────────────────────────────────────────────
     updateUI();
   </script>

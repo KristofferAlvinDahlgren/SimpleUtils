@@ -695,7 +695,37 @@
       applyTheme(document.documentElement.dataset.theme === 'dark' ? 'light' : 'dark');
     });
     applyTheme(document.documentElement.dataset.theme);
-
+    /* ── Persistence ─────────────────────────────────────────────────────────────── */
+    const _SK = 'utils-permissions';
+    function _save() {
+      try {
+        localStorage.setItem(_SK, JSON.stringify({
+          perms:    state.perms.slice(),
+          fileType: state.fileType,
+          setuid:   state.setuid,
+          setgid:   state.setgid,
+          sticky:   state.sticky,
+        }));
+      } catch {}
+    }
+    (function _load() {
+      try {
+        const d = JSON.parse(localStorage.getItem(_SK));
+        if (!d) return;
+        if (Array.isArray(d.perms) && d.perms.length === 9) state.perms = d.perms.map(Number);
+        if (typeof d.fileType === 'string')  state.fileType = d.fileType;
+        if (typeof d.setuid   === 'boolean') state.setuid   = d.setuid;
+        if (typeof d.setgid   === 'boolean') state.setgid   = d.setgid;
+        if (typeof d.sticky   === 'boolean') state.sticky   = d.sticky;
+      } catch {}
+    })();
+    permBtns.forEach(btn => btn.addEventListener('click', _save));
+    cbSetuid.addEventListener('change', _save);
+    cbSetgid.addEventListener('change', _save);
+    cbSticky.addEventListener('change', _save);
+    fileTypeSelect.addEventListener('change', _save);
+    octalInput.addEventListener('input', _save);
+    symbolicInput.addEventListener('input', _save);
     /* ── Init ─────────────────────────────────────────────────────────────── */
     render();
   </script>

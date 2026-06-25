@@ -36,6 +36,7 @@ README.md           This file
 - **Commit flow**: Once the output looks correct, the **Commit** button replaces the input with the output, allowing operations to be chained.
 - **Copy**: A **Copy** button in the output panel writes to the clipboard.
 - **Template**: A base template for utility pages can be found at page-template.html
+- **State persistence**: Every utility page saves its inputs and settings to `localStorage` and restores them on next visit. Each page uses a unique key (`utils-<name>`) so pages don't interfere with one another. Sensitive values (passphrases, raw keys, HMAC secrets) are intentionally excluded from persistence.
 
 ### Styling guidelines
 - **Theme**: VS Code-inspired. Fully self-contained - no external stylesheets or scripts.
@@ -113,7 +114,6 @@ Processing pipeline order: trim → remove empty → deduplicate → sort → ca
 - Move rarely used features (like HTML encoding), into grouped collapsible sections
 - Reverse case
 - Change order of operations so that split line can be used with sort and unique lines before joining at the end
-- Add save to local storage for input, settings, etc. 
 ---
 
 ### JSON (`json.html`)

@@ -638,7 +638,38 @@
       a.href = previewUrl; a.download = downloadName; a.click();
     });
 
+    // ── Persistence ─────────────────────────────────────────────────────────
+    const _SK = 'utils-base64';
+    function _save() {
+      if (currentSource !== 'text') return;
+      try {
+        localStorage.setItem(_SK, JSON.stringify({
+          input:  inputEl.value,
+          op:     getOp(),
+          enc:    getUrlSafe() ? 'urlsafe' : 'standard',
+          outype: getOutType(),
+          mime:   mimeInput.value,
+        }));
+      } catch {}
+    }
+    (function _load() {
+      try {
+        const d = JSON.parse(localStorage.getItem(_SK));
+        if (!d) return;
+        if (d.input  !== undefined) inputEl.value = d.input;
+        if (d.op)    { const r = document.querySelector(`[name="op"][value="${d.op}"]`);         if (r) r.checked = true; }
+        if (d.enc)   { const r = document.querySelector(`[name="enc"][value="${d.enc}"]`);       if (r) r.checked = true; }
+        if (d.outype){ const r = document.querySelector(`[name="outype"][value="${d.outype}"]`); if (r) r.checked = true; }
+        if (d.mime   !== undefined) mimeInput.value = d.mime;
+      } catch {}
+    })();
+    inputEl.addEventListener('input', _save);
+    document.querySelectorAll('[name="op"],[name="enc"],[name="outype"]')
+      .forEach(el => el.addEventListener('change', _save));
+    mimeInput.addEventListener('input', _save);
+
     updateOptions();
+    process();
   </script>
   <script>
     const SUN_SVG = `<svg width="15" height="15" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round"><circle cx="12" cy="12" r="5"/><line x1="12" y1="1" x2="12" y2="3"/><line x1="12" y1="21" x2="12" y2="23"/><line x1="4.22" y1="4.22" x2="5.64" y2="5.64"/><line x1="18.36" y1="18.36" x2="19.78" y2="19.78"/><line x1="1" y1="12" x2="3" y2="12"/><line x1="21" y1="12" x2="23" y2="12"/><line x1="4.22" y1="19.78" x2="5.64" y2="18.36"/><line x1="18.36" y1="5.64" x2="19.78" y2="4.22"/></svg>`;

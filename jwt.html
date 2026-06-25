@@ -705,7 +705,35 @@
       applyTheme(document.documentElement.dataset.theme === 'dark' ? 'light' : 'dark');
     });
     applyTheme(document.documentElement.dataset.theme);
-
+    // ── Persistence ─────────────────────────────────────────────────────────
+    const _SK = 'utils-jwt';
+    function _save() {
+      try {
+        localStorage.setItem(_SK, JSON.stringify({
+          token:    document.getElementById('jwt-input').value,
+          showRaw:  document.getElementById('show-raw').checked,
+          showDesc: document.getElementById('show-claim-desc').checked,
+          doVerify: document.getElementById('do-verify').checked,
+        }));
+      } catch {}
+    }
+    (function _load() {
+      try {
+        const d = JSON.parse(localStorage.getItem(_SK));
+        if (!d) return;
+        if (d.token    !== undefined) document.getElementById('jwt-input').value = d.token;
+        if (d.showRaw  !== undefined) document.getElementById('show-raw').checked = d.showRaw;
+        if (d.showDesc !== undefined) document.getElementById('show-claim-desc').checked = d.showDesc;
+        if (d.doVerify) {
+          document.getElementById('do-verify').checked = true;
+          document.getElementById('verify-inputs').style.display = 'flex';
+        }
+      } catch {}
+    })();
+    document.getElementById('jwt-input').addEventListener('input', _save);
+    document.getElementById('show-raw').addEventListener('change', _save);
+    document.getElementById('show-claim-desc').addEventListener('change', _save);
+    document.getElementById('do-verify').addEventListener('change', _save);
     // ── Init ───────────────────────────────────────────────────────────────
     renderOutput();
   </script>

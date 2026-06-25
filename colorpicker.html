@@ -688,7 +688,35 @@
     document.getElementById('a-slider').addEventListener('change', () => {
       pushHistory(r, g, b);
     });
-
+    // ── Persistence ─────────────────────────────────────────────────────────
+    const _SK = 'utils-colorpicker';
+    function _saveColor() {
+      try {
+        localStorage.setItem(_SK, JSON.stringify({ r, g, b, a, history: history.slice(0, 32) }));
+      } catch {}
+    }
+    (function _loadColor() {
+      try {
+        const d = JSON.parse(localStorage.getItem(_SK));
+        if (!d) return;
+        if (typeof d.r === 'number') r = clamp(Math.round(d.r), 0, 255);
+        if (typeof d.g === 'number') g = clamp(Math.round(d.g), 0, 255);
+        if (typeof d.b === 'number') b = clamp(Math.round(d.b), 0, 255);
+        if (typeof d.a === 'number') a = clamp(d.a, 0, 1);
+        if (Array.isArray(d.history)) {
+          history.length = 0;
+          d.history.forEach(hex => { if (typeof hex === 'string') history.push(hex); });
+        }
+      } catch {}
+    })();
+    // Wrap render() to debounce-save after every color change
+    const _origRender = render;
+    let _saveColorId = 0;
+    render = function() {
+      _origRender();
+      clearTimeout(_saveColorId);
+      _saveColorId = setTimeout(_saveColor, 400);
+    };
     // ── Init ────────────────────────────────────────────────────────────────
     render();
   </script>

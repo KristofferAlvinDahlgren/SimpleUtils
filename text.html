@@ -387,6 +387,60 @@
       inputEl.value = outputEl.value;
       process();
     });
+
+    // ── Persistence ─────────────────────────────────────────────────────────
+    const _SK = 'utils-text';
+    function _save() {
+      try {
+        localStorage.setItem(_SK, JSON.stringify({
+          input:        inputEl.value,
+          trim:         opts.trim.checked,
+          empty:        opts.empty.checked,
+          dedupe:       opts.dedupe.checked,
+          dedupeCase:   opts.dedupeCase.checked,
+          sort:         opts.sort.checked,
+          sortOrder:    opts.sortOrder.value,
+          sortCase:     opts.sortCase.checked,
+          caseConvert:  opts.caseConvert.value,
+          accents:      opts.accents.checked,
+          special:      opts.special.checked,
+          splitOn:      opts.splitOn.value,
+          joinWith:     opts.joinWith.value,
+          htmlEntities: opts.htmlEntities.value,
+          url:          opts.url.value,
+        }));
+      } catch {}
+    }
+    (function _load() {
+      try {
+        const d = JSON.parse(localStorage.getItem(_SK));
+        if (!d) return;
+        if (d.input        !== undefined) inputEl.value           = d.input;
+        if (d.trim         !== undefined) opts.trim.checked       = d.trim;
+        if (d.empty        !== undefined) opts.empty.checked      = d.empty;
+        if (d.dedupe       !== undefined) opts.dedupe.checked     = d.dedupe;
+        if (d.dedupeCase   !== undefined) opts.dedupeCase.checked = d.dedupeCase;
+        if (d.sort         !== undefined) opts.sort.checked       = d.sort;
+        if (d.sortOrder    !== undefined) opts.sortOrder.value    = d.sortOrder;
+        if (d.sortCase     !== undefined) opts.sortCase.checked   = d.sortCase;
+        if (d.caseConvert  !== undefined) opts.caseConvert.value  = d.caseConvert;
+        if (d.accents      !== undefined) opts.accents.checked    = d.accents;
+        if (d.special      !== undefined) opts.special.checked    = d.special;
+        if (d.splitOn      !== undefined) opts.splitOn.value      = d.splitOn;
+        if (d.joinWith     !== undefined) opts.joinWith.value     = d.joinWith;
+        if (d.htmlEntities !== undefined) opts.htmlEntities.value = d.htmlEntities;
+        if (d.url          !== undefined) opts.url.value          = d.url;
+      } catch {}
+      process();
+    })();
+    inputEl.addEventListener('input', _save);
+    btnCommit.addEventListener('click', _save);
+    [opts.trim, opts.empty, opts.dedupe, opts.dedupeCase, opts.sort, opts.sortCase, opts.accents, opts.special]
+      .forEach(el => el.addEventListener('change', _save));
+    [opts.sortOrder, opts.caseConvert, opts.htmlEntities, opts.url]
+      .forEach(el => el.addEventListener('change', _save));
+    [opts.splitOn, opts.joinWith]
+      .forEach(el => el.addEventListener('input', _save));
   </script>
   <script>
     const SUN_SVG = `<svg width="15" height="15" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round"><circle cx="12" cy="12" r="5"/><line x1="12" y1="1" x2="12" y2="3"/><line x1="12" y1="21" x2="12" y2="23"/><line x1="4.22" y1="4.22" x2="5.64" y2="5.64"/><line x1="18.36" y1="18.36" x2="19.78" y2="19.78"/><line x1="1" y1="12" x2="3" y2="12"/><line x1="21" y1="12" x2="23" y2="12"/><line x1="4.22" y1="19.78" x2="5.64" y2="18.36"/><line x1="18.36" y1="5.64" x2="19.78" y2="4.22"/></svg>`;

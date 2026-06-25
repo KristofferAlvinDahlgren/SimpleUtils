@@ -723,7 +723,37 @@
     testInput.addEventListener('input', run);
     showGroupsCb.addEventListener('change', run);
     showTableCb.addEventListener('change', () => renderTable(lastMatches));
-
+    /* ── Persistence ─────────────────────────────────────────────────────────────── */
+    const _SK = 'utils-regex';
+    function _save() {
+      try {
+        localStorage.setItem(_SK, JSON.stringify({
+          pattern:    patternInput.value,
+          flags:      flagsInput.value,
+          text:       testInput.value,
+          showGroups: showGroupsCb.checked,
+          showTable:  showTableCb.checked,
+        }));
+      } catch {}
+    }
+    (function _load() {
+      try {
+        const d = JSON.parse(localStorage.getItem(_SK));
+        if (!d) return;
+        if (d.pattern    !== undefined) patternInput.value      = d.pattern;
+        if (d.flags      !== undefined) flagsInput.value        = d.flags;
+        if (d.text       !== undefined) testInput.value         = d.text;
+        if (d.showGroups !== undefined) showGroupsCb.checked    = d.showGroups;
+        if (d.showTable  !== undefined) showTableCb.checked     = d.showTable;
+      } catch {}
+      syncCheckboxes();
+      run();
+    })();
+    patternInput.addEventListener('input', _save);
+    testInput.addEventListener('input', _save);
+    flagsInput.addEventListener('input', _save);
+    showGroupsCb.addEventListener('change', _save);
+    showTableCb.addEventListener('change', _save);
     /* ── Utility ──────────────────────────────────────────────────────────── */
     function escHtml(str) {
       if (str === undefined || str === null) return '';

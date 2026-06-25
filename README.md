@@ -329,12 +329,10 @@ Processing pipeline order: trim → remove empty → deduplicate → sort → ca
 
 ## Planned utilities
 - XML, YAML, TOML, CSV
-- URL, email, phone (validator, formatter and sorter)
 - Templater (Apply a template to a given dataset (simple: replace keyword in a text with attributes form input. advanced: create tables from a large dataset))
 - Table (create a dynamic table with sortable columns and search filters based on a json input)
 - Save settings and input to local storage
 - Data mapping (input data like json, apply mapping rules, generate output)
-- Image/base64 conversion
 
 ---
 

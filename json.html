@@ -153,6 +153,26 @@
             <input type="radio" name="mode" value="minify"> Minify
           </label>
         </div>
+        <div class="opt-row">
+          <label class="radio-label">
+            <input type="radio" name="mode" value="yaml"> → YAML
+          </label>
+        </div>
+        <div class="opt-row">
+          <label class="radio-label">
+            <input type="radio" name="mode" value="xml"> → XML
+          </label>
+        </div>
+        <div class="opt-row">
+          <label class="radio-label">
+            <input type="radio" name="mode" value="toml"> → TOML
+          </label>
+        </div>
+        <div class="opt-row">
+          <label class="radio-label">
+            <input type="radio" name="mode" value="csv"> → CSV
+          </label>
+        </div>
       </div>
 
       <div class="opt-group" id="format-opts">
@@ -209,6 +229,159 @@
       return val;
     }
 
+    // ── Converters ────────────────────────────────────────────────────────────
+
+    function jsonToYaml(data) {
+      function quoteStr(s, depth) {
+        if (s === '') return '""';
+        if (s.includes('\n')) {
+          const ind = '  '.repeat(depth + 1);
+          return '|\n' + s.split('\n').map(l => ind + l).join('\n');
+        }
+        const needsQuotes =
+          s === 'true' || s === 'false' || s === 'null' || s === '~' ||
+          /^[\s]|[\s]$/.test(s) ||
+          /^[-?:,#&*!|>'"\\%@`\[\]{}~]/.test(s) ||
+          /[:#\[\]{},]/.test(s) ||
+          /^[0-9]/.test(s) ||
+          /^0x[0-9a-fA-F]+$/i.test(s) ||
+          /^[+-]?(\.inf|\.nan)$/i.test(s);
+        return needsQuotes ? JSON.stringify(s) : s;
+      }
+      function serialize(val, depth) {
+        const pad = '  '.repeat(depth);
+        if (val === null) return 'null';
+        if (typeof val === 'boolean') return String(val);
+        if (typeof val === 'number') return isFinite(val) ? String(val) : '.nan';
+        if (typeof val === 'string') return quoteStr(val, depth);
+        if (Array.isArray(val)) {
+          if (val.length === 0) return '[]';
+          return val.map(item => {
+            if (item !== null && typeof item === 'object' && !Array.isArray(item)) {
+              const inner = serialize(item, depth + 1);
+              const lines = inner.split('\n');
+              return pad + '- ' + lines[0].trimStart() +
+                (lines.length > 1 ? '\n' + lines.slice(1).join('\n') : '');
+            }
+            if (Array.isArray(item)) return pad + '-\n' + serialize(item, depth + 1);
+            return pad + '- ' + serialize(item, depth);
+          }).join('\n');
+        }
+        if (typeof val === 'object') {
+          const keys = Object.keys(val);
+          if (keys.length === 0) return '{}';
+          return keys.map(key => {
+            const v = val[key];
+            const sk = /[\s:#\[\]{},&*?|<>='"\n\\%@`!]/.test(key) || key === ''
+              ? JSON.stringify(key) : key;
+            if (v !== null && typeof v === 'object')
+              return pad + sk + ':\n' + serialize(v, depth + 1);
+            return pad + sk + ': ' + serialize(v, depth);
+          }).join('\n');
+        }
+        return String(val);
+      }
+      return serialize(data, 0);
+    }
+
+    function jsonToXml(data) {
+      function esc(s) {
+        return String(s).replace(/&/g, '&amp;').replace(/</g, '&lt;')
+          .replace(/>/g, '&gt;').replace(/"/g, '&quot;').replace(/'/g, '&apos;');
+      }
+      function safeTag(s) {
+        let t = String(s).replace(/[^a-zA-Z0-9_\-.]/g, '_');
+        if (/^[^a-zA-Z_]/.test(t)) t = '_' + t;
+        return t || '_';
+      }
+      function serialize(val, tag, depth) {
+        const pad = '  '.repeat(depth);
+        if (val === null || val === undefined) return `${pad}<${tag}/>`;
+        if (Array.isArray(val)) {
+          if (val.length === 0) return `${pad}<${tag}/>`;
+          return `${pad}<${tag}>\n` +
+            val.map(item => serialize(item, 'item', depth + 1)).join('\n') +
+            `\n${pad}</${tag}>`;
+        }
+        if (typeof val === 'object') {
+          const entries = Object.entries(val);
+          if (entries.length === 0) return `${pad}<${tag}/>`;
+          return `${pad}<${tag}>\n` +
+            entries.map(([k, v]) => serialize(v, safeTag(k), depth + 1)).join('\n') +
+            `\n${pad}</${tag}>`;
+        }
+        return `${pad}<${tag}>${esc(val)}</${tag}>`;
+      }
+      return '<?xml version="1.0" encoding="UTF-8"?>\n' + serialize(data, 'root', 0);
+    }
+
+    function jsonToToml(data) {
+      if (typeof data !== 'object' || data === null || Array.isArray(data))
+        throw new Error('TOML root must be a JSON object');
+      function tomlKey(k) {
+        return /^[a-zA-Z0-9_-]+$/.test(k) ? k : JSON.stringify(k);
+      }
+      function tomlScalar(v) {
+        if (v === null) return '""';
+        if (typeof v === 'boolean') return String(v);
+        if (typeof v === 'number') return isFinite(v) ? String(v) : '"' + v + '"';
+        if (typeof v === 'string') return JSON.stringify(v);
+        return JSON.stringify(String(v));
+      }
+      function tomlInline(v) {
+        if (v === null || typeof v !== 'object') return tomlScalar(v);
+        if (Array.isArray(v)) return '[' + v.map(tomlInline).join(', ') + ']';
+        return '{' + Object.entries(v).map(([k, w]) => tomlKey(k) + ' = ' + tomlInline(w)).join(', ') + '}';
+      }
+      function isTableArr(a) {
+        return Array.isArray(a) && a.length > 0 &&
+          a.every(x => x !== null && typeof x === 'object' && !Array.isArray(x));
+      }
+      function buildSection(obj, path) {
+        const simple = [], tables = [], arrs = [];
+        for (const [k, v] of Object.entries(obj)) {
+          if (v !== null && typeof v === 'object' && !Array.isArray(v)) tables.push([k, v]);
+          else if (isTableArr(v)) arrs.push([k, v]);
+          else simple.push(tomlKey(k) + ' = ' + tomlInline(v));
+        }
+        const parts = [];
+        if (simple.length) parts.push(simple.join('\n'));
+        for (const [k, v] of tables) {
+          const p = [...path, k], h = p.map(tomlKey).join('.');
+          parts.push('[' + h + ']\n' + buildSection(v, p).trim());
+        }
+        for (const [k, v] of arrs) {
+          const p = [...path, k], h = p.map(tomlKey).join('.');
+          for (const item of v)
+            parts.push('[[' + h + ']]\n' + buildSection(item, p).trim());
+        }
+        return parts.join('\n\n');
+      }
+      return buildSection(data, []).trim();
+    }
+
+    function jsonToCsv(data) {
+      if (!Array.isArray(data)) throw new Error('CSV requires a JSON array as root');
+      if (data.length === 0) return '';
+      function esc(v) {
+        if (v === null || v === undefined) return '';
+        const s = typeof v === 'object' ? JSON.stringify(v) : String(v);
+        return (s.includes(',') || s.includes('"') || s.includes('\n') || s.includes('\r'))
+          ? '"' + s.replace(/"/g, '""') + '"' : s;
+      }
+      if (data.every(r => r !== null && typeof r === 'object' && !Array.isArray(r))) {
+        const headers = [...new Set(data.flatMap(r => Object.keys(r)))];
+        return [headers.map(esc).join(','),
+          ...data.map(r => headers.map(h => esc(r[h] === undefined ? null : r[h])).join(','))
+        ].join('\n');
+      }
+      if (data.every(r => Array.isArray(r)))
+        return data.map(r => r.map(esc).join(',')).join('\n');
+      if (data.every(r => typeof r !== 'object' || r === null))
+        return data.map(esc).join('\n');
+      throw new Error('CSV: mixed array items are not supported');
+    }
+
     function process() {
       const raw = inputEl.value;
 
@@ -237,14 +410,30 @@
       validEl.textContent = 'Valid JSON';
 
       const mode = document.querySelector('[name="mode"]:checked').value;
-      let data = sortKeysEl.checked ? deepSortKeys(parsed) : parsed;
+      const isJsonMode = mode === 'format' || mode === 'minify';
+      let data = (mode === 'format' && sortKeysEl.checked) ? deepSortKeys(parsed) : parsed;
       let result;
 
-      if (mode === 'format') {
-        const indent = indentSel.value === 'tab' ? '\t' : parseInt(indentSel.value, 10);
-        result = JSON.stringify(data, null, indent);
-      } else {
-        result = JSON.stringify(data);
+      try {
+        if (mode === 'format') {
+          const indent = indentSel.value === 'tab' ? '\t' : parseInt(indentSel.value, 10);
+          result = JSON.stringify(data, null, indent);
+        } else if (mode === 'minify') {
+          result = JSON.stringify(data);
+        } else if (mode === 'yaml') {
+          result = jsonToYaml(data);
+        } else if (mode === 'xml') {
+          result = jsonToXml(data);
+        } else if (mode === 'toml') {
+          result = jsonToToml(data);
+        } else if (mode === 'csv') {
+          result = jsonToCsv(data);
+        }
+      } catch (e) {
+        outputEl.value = '';
+        statusEl.textContent = '\u26a0 ' + e.message;
+        btnCopy.disabled = btnCommit.disabled = true;
+        return;
       }
 
       outputEl.value = result;
@@ -252,12 +441,13 @@
       statusEl.textContent = bytes < 1024
         ? `${bytes} B`
         : `${(bytes / 1024).toFixed(1)} KB`;
-      btnCopy.disabled = btnCommit.disabled = false;
+      btnCopy.disabled = false;
+      btnCommit.disabled = !isJsonMode;
     }
 
     document.querySelectorAll('[name="mode"]').forEach(r => {
       r.addEventListener('change', () => {
-        formatOpts.classList.toggle('hidden', r.value === 'minify' && r.checked);
+        formatOpts.classList.toggle('hidden', document.querySelector('[name="mode"]:checked').value !== 'format');
         process();
       });
     });
@@ -300,7 +490,7 @@
         const d = JSON.parse(localStorage.getItem(_SK));
         if (!d) return;
         if (d.input    !== undefined) inputEl.value = d.input;
-        if (d.mode)  { const r = document.querySelector(`[name="mode"][value="${d.mode}"]`); if (r) { r.checked = true; formatOpts.classList.toggle('hidden', d.mode === 'minify'); } }
+        if (d.mode)  { const r = document.querySelector(`[name="mode"][value="${d.mode}"]`); if (r) { r.checked = true; formatOpts.classList.toggle('hidden', d.mode !== 'format'); } }
         if (d.indent)                 indentSel.value = d.indent;
         if (d.sortKeys !== undefined) sortKeysEl.checked = d.sortKeys;
       } catch {}

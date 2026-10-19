@@ -141,6 +141,22 @@
       transition: border-color 0.15s;
       outline: none;
     }
+    input[type="file"] {
+      width: 100%;
+      color: var(--text-dim);
+      font: inherit;
+      font-size: 0.82rem;
+    }
+    input[type="file"]::file-selector-button {
+      margin-right: 10px;
+      padding: 7px 10px;
+      border: 1px solid var(--border);
+      border-radius: var(--r);
+      background: var(--surface);
+      color: var(--text);
+      font: inherit;
+      cursor: pointer;
+    }
     textarea:focus, input[type="text"]:focus, select:focus {
       border-color: var(--accent);
     }
@@ -212,6 +228,7 @@
     }
     .btn-primary:hover { background: var(--accent-hover); border-color: var(--accent-hover); }
     .btn-primary:disabled { opacity: 0.45; cursor: not-allowed; }
+    .btn:disabled { opacity: 0.45; cursor: not-allowed; }
 
     .btn-row {
       display: grid;
@@ -329,20 +346,42 @@
 
       <div class="row">
         <div class="field">
-          <label>Foreground</label>
+          <label for="fg-color">Primary color</label>
           <div class="color-row">
             <input type="color" id="fg-color" value="#000000">
             <input type="text" id="fg-hex" class="color-hex" value="#000000" maxlength="7" spellcheck="false">
           </div>
         </div>
         <div class="field">
-          <label>Background</label>
+          <label for="bg-color">Secondary color</label>
           <div class="color-row">
             <input type="color" id="bg-color" value="#ffffff">
             <input type="text" id="bg-hex" class="color-hex" value="#ffffff" maxlength="7" spellcheck="false">
           </div>
         </div>
       </div>
+
+      <div class="row">
+        <div class="field">
+          <label for="module-shape">Module edges</label>
+          <select id="module-shape">
+            <option value="square" selected>Square</option>
+            <option value="rounded">Rounded</option>
+          </select>
+        </div>
+        <div class="field">
+          <label for="logo-image">Center image</label>
+          <input type="file" id="logo-image" accept="image/png,image/jpeg,image/webp">
+        </div>
+      </div>
+      <div class="field hidden" id="corner-radius-field">
+        <label for="corner-radius">Corner radius</label>
+        <div class="slider-row">
+          <input type="range" id="corner-radius" min="0" max="50" value="20">
+          <span class="slider-val" id="corner-radius-val">20%</span>
+        </div>
+      </div>
+      <button class="btn" id="btn-remove-image" type="button" disabled>Remove center image</button>
 
       <div class="field">
         <label for="margin">Quiet zone (modules)</label>
@@ -433,6 +472,12 @@
     const fgHexEl    = document.getElementById('fg-hex');
     const bgColorEl  = document.getElementById('bg-color');
     const bgHexEl    = document.getElementById('bg-hex');
+    const moduleShape = document.getElementById('module-shape');
+    const cornerRadiusField = document.getElementById('corner-radius-field');
+    const cornerRadiusSlider = document.getElementById('corner-radius');
+    const cornerRadiusVal = document.getElementById('corner-radius-val');
+    const logoInput  = document.getElementById('logo-image');
+    const removeLogoBtn = document.getElementById('btn-remove-image');
     const canvas     = document.getElementById('qr-canvas');
     const placeholder = document.getElementById('placeholder');
     const statusEl   = document.getElementById('status');
@@ -445,6 +490,8 @@
     const MAX_CHARS = 2953;
 
     let toastTimer;
+    let logoImage = null;
+    let logoUrl = null;
     function showToast(msg) {
       clearTimeout(toastTimer);
       toast.textContent = msg;
@@ -491,18 +538,57 @@
         for (let row = 0; row < modules; row++) {
           for (let col = 0; col < modules; col++) {
             if (qr.isDark(row, col)) {
-              ctx.fillRect(
-                (col + margin) * scale,
-                (row + margin) * scale,
-                scale, scale
-              );
+              const x = (col + margin) * scale;
+              const y = (row + margin) * scale;
+              if (moduleShape.value === 'rounded') {
+                const radius = scale * parseInt(cornerRadiusSlider.value, 10) / 100;
+                const darkAbove = row > 0 && qr.isDark(row - 1, col);
+                const darkRight = col < modules - 1 && qr.isDark(row, col + 1);
+                const darkBelow = row < modules - 1 && qr.isDark(row + 1, col);
+                const darkLeft = col > 0 && qr.isDark(row, col - 1);
+                const radii = [
+                  !darkAbove && !darkLeft ? radius : 0,
+                  !darkAbove && !darkRight ? radius : 0,
+                  !darkBelow && !darkRight ? radius : 0,
+                  !darkBelow && !darkLeft ? radius : 0
+                ];
+                ctx.beginPath();
+                ctx.roundRect(x, y, scale, scale, radii);
+                ctx.fill();
+              } else {
+                ctx.fillRect(x, y, scale, scale);
+              }
             }
           }
         }
 
+        if (logoImage && logoImage.complete && logoImage.naturalWidth) {
+          const codeSize = modules * scale;
+          const logoSize = codeSize * 0.16;
+          const padding = scale * 0.45;
+          const plateSize = logoSize + padding * 2;
+          const plateX = (size - plateSize) / 2;
+          const plateY = (size - plateSize) / 2;
+          const imageScale = Math.min(logoSize / logoImage.naturalWidth, logoSize / logoImage.naturalHeight);
+          const imageWidth = logoImage.naturalWidth * imageScale;
+          const imageHeight = logoImage.naturalHeight * imageScale;
+
+          ctx.fillStyle = '#ffffff';
+          ctx.beginPath();
+          ctx.roundRect(plateX, plateY, plateSize, plateSize, scale * 0.45);
+          ctx.fill();
+          ctx.drawImage(
+            logoImage,
+            (size - imageWidth) / 2,
+            (size - imageHeight) / 2,
+            imageWidth,
+            imageHeight
+          );
+        }
+
         canvas.classList.remove('hidden');
         placeholder.classList.add('hidden');
-        statusEl.textContent = `${modules}×${modules} modules · version ${qr.typeNumber || '?'} · ${size}×${size}px`;
+        statusEl.textContent = `${modules}×${modules} modules · version ${qr.typeNumber || '?'} · ${size}×${size}px${logoImage ? ' · H correction recommended with a center image' : ''}`;
         statusEl.className = 'status';
       } catch (err) {
         canvas.classList.add('hidden');
@@ -530,6 +616,39 @@
     }
     syncColor(fgColorEl, fgHexEl);
     syncColor(bgColorEl, bgHexEl);
+
+    moduleShape.addEventListener('change', () => {
+      cornerRadiusField.classList.toggle('hidden', moduleShape.value !== 'rounded');
+      generate();
+    });
+    cornerRadiusSlider.addEventListener('input', () => {
+      cornerRadiusVal.textContent = `${cornerRadiusSlider.value}%`;
+      generate();
+    });
+    logoInput.addEventListener('change', () => {
+      const file = logoInput.files && logoInput.files[0];
+      if (!file) return;
+      if (logoUrl) URL.revokeObjectURL(logoUrl);
+      logoUrl = URL.createObjectURL(file);
+      logoImage = new Image();
+      logoImage.onload = generate;
+      logoImage.onerror = () => {
+        logoImage = null;
+        removeLogoBtn.disabled = true;
+        showToast('Could not load that image');
+        generate();
+      };
+      logoImage.src = logoUrl;
+      removeLogoBtn.disabled = false;
+    });
+    removeLogoBtn.addEventListener('click', () => {
+      if (logoUrl) URL.revokeObjectURL(logoUrl);
+      logoUrl = null;
+      logoImage = null;
+      logoInput.value = '';
+      removeLogoBtn.disabled = true;
+      generate();
+    });
 
     sizeSlider.addEventListener('input', () => {
       sizeVal.textContent = `${sizeSlider.value}×`;

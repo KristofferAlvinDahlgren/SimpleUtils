@@ -523,6 +523,7 @@
     let socialLogoImage = null;
     let socialSvgMarkup = null;
     let logoLoadId = 0;
+    let requestedLogoModules = null;
     function showToast(msg) {
       clearTimeout(toastTimer);
       toast.textContent = msg;
@@ -567,7 +568,7 @@
       if (['square', 'rounded', 'dots'].includes(shape)) moduleShape.value = shape;
       const logoSize = Number(params.get('logoSize'));
       if (Number.isInteger(logoSize) && logoSize >= 3 && logoSize <= 31 && logoSize % 2 === 1) {
-        logoScaleSlider.value = String(logoSize);
+        requestedLogoModules = logoSize;
       }
       const social = params.get('social');
       if (['instagram', 'facebook', 'x', 'linkedin', 'youtube', 'tiktok', 'whatsapp'].includes(social)) {
@@ -614,7 +615,10 @@
         let maxLogoModules = Math.max(3, Math.floor(modules * 0.28));
         if (maxLogoModules % 2 === 0) maxLogoModules--;
         logoScaleSlider.max = String(maxLogoModules);
-        if (parseInt(logoScaleSlider.value, 10) > maxLogoModules) {
+        if (requestedLogoModules !== null) {
+          logoScaleSlider.value = String(Math.min(requestedLogoModules, maxLogoModules));
+          requestedLogoModules = null;
+        } else if (parseInt(logoScaleSlider.value, 10) > maxLogoModules) {
           logoScaleSlider.value = String(maxLogoModules);
         }
         logoScaleVal.textContent = `${logoScaleSlider.value} modules`;

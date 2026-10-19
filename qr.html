@@ -237,6 +237,7 @@
       margin-top: auto;
       padding-top: 4px;
     }
+    #btn-copy-link { grid-column: 1 / -1; }
 
     .char-count {
       font-size: 0.75rem;
@@ -418,6 +419,12 @@
           </svg>
           Download PNG
         </button>
+        <button class="btn" id="btn-copy-link" title="Copy link with current QR settings">
+          <svg width="14" height="14" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round">
+            <path d="M10 13a5 5 0 0 0 7.07 0l3-3a5 5 0 0 0-7.07-7.07l-1.72 1.71"/><path d="M14 11a5 5 0 0 0-7.07 0l-3 3A5 5 0 0 0 11 21.07l1.71-1.71"/>
+          </svg>
+          Copy link
+        </button>
       </div>
     </div>
 
@@ -504,6 +511,7 @@
     const charCount  = document.getElementById('char-count');
     const btnCopy    = document.getElementById('btn-copy');
     const btnDownload = document.getElementById('btn-download');
+    const btnCopyLink = document.getElementById('btn-copy-link');
     const toast      = document.getElementById('toast');
 
     // Max capacity for QR (rough guide — actual limit depends on content/EC/version)
@@ -523,6 +531,57 @@
     }
 
     function isValidHex(h) { return /^#[0-9a-fA-F]{6}$/.test(h); }
+
+    function loadUrlSettings() {
+      const params = new URLSearchParams(window.location.search);
+      const text = params.get('text');
+      if (text !== null && text.length <= MAX_CHARS) input.value = text;
+
+      const correction = params.get('ec');
+      if (['L', 'M', 'Q', 'H'].includes(correction)) ecLevel.value = correction;
+
+      const numericSettings = [
+        ['scale', sizeSlider, 2, 20],
+        ['margin', marginSlider, 0, 8],
+        ['radius', cornerRadiusSlider, 0, 50]
+      ];
+      numericSettings.forEach(([key, control, min, max]) => {
+        const value = Number(params.get(key));
+        if (params.has(key) && Number.isInteger(value) && value >= min && value <= max) {
+          control.value = String(value);
+        }
+      });
+
+      const foreground = params.get('fg');
+      if (foreground && isValidHex(foreground)) {
+        fgHexEl.value = foreground;
+        fgColorEl.value = foreground;
+      }
+      const background = params.get('bg');
+      if (background && isValidHex(background)) {
+        bgHexEl.value = background;
+        bgColorEl.value = background;
+      }
+
+      const shape = params.get('shape');
+      if (['square', 'rounded', 'dots'].includes(shape)) moduleShape.value = shape;
+      const logoSize = Number(params.get('logoSize'));
+      if (Number.isInteger(logoSize) && logoSize >= 3 && logoSize <= 31 && logoSize % 2 === 1) {
+        logoScaleSlider.value = String(logoSize);
+      }
+      const social = params.get('social');
+      if (['instagram', 'facebook', 'x', 'linkedin', 'youtube', 'tiktok', 'whatsapp'].includes(social)) {
+        socialLogo.value = social;
+      }
+
+      sizeVal.textContent = `${sizeSlider.value}×`;
+      marginVal.textContent = marginSlider.value;
+      cornerRadiusVal.textContent = `${cornerRadiusSlider.value}%`;
+      logoScaleVal.textContent = `${logoScaleSlider.value} modules`;
+      cornerRadiusField.classList.toggle('hidden', moduleShape.value !== 'rounded');
+    }
+
+    loadUrlSettings();
 
     function generate() {
       const text = input.value;
@@ -761,6 +820,43 @@
 
     input.addEventListener('input', generate);
     ecLevel.addEventListener('change', generate);
+
+    socialLogo.dispatchEvent(new Event('change'));
+
+    btnCopyLink.addEventListener('click', async () => {
+      const shareUrl = new URL(window.location.href);
+      const params = new URLSearchParams();
+      params.set('text', input.value);
+      params.set('ec', ecLevel.value);
+      params.set('scale', sizeSlider.value);
+      params.set('fg', fgHexEl.value);
+      params.set('bg', bgHexEl.value);
+      params.set('shape', moduleShape.value);
+      params.set('radius', cornerRadiusSlider.value);
+      params.set('logoSize', logoScaleSlider.value);
+      params.set('margin', marginSlider.value);
+      if (socialLogo.value) params.set('social', socialLogo.value);
+      shareUrl.search = params.toString();
+      shareUrl.hash = '';
+
+      try {
+        await navigator.clipboard.writeText(shareUrl.toString());
+      } catch {
+        const temporaryInput = document.createElement('textarea');
+        temporaryInput.value = shareUrl.toString();
+        temporaryInput.style.position = 'fixed';
+        temporaryInput.style.opacity = '0';
+        document.body.appendChild(temporaryInput);
+        temporaryInput.select();
+        const copied = document.execCommand('copy');
+        temporaryInput.remove();
+        if (!copied) {
+          showToast('Could not copy link');
+          return;
+        }
+      }
+      showToast('Settings link copied');
+    });
 
     // ── Copy image ────────────────────────────────────────────────────────
     btnCopy.addEventListener('click', async () => {

@@ -1,0 +1,571 @@
+<!DOCTYPE html>
+<html lang="en" data-theme="dark">
+<head>
+  <meta charset="UTF-8">
+  <meta name="viewport" content="width=device-width, initial-scale=1.0">
+  <title>QR Code — Utils</title>
+
+  <script>
+    (function () {
+      const saved = localStorage.getItem('utils-theme');
+      const preferred = saved
+        || (window.matchMedia('(prefers-color-scheme: light)').matches ? 'light' : 'dark');
+      document.documentElement.dataset.theme = preferred;
+    })();
+  </script>
+
+  <style>
+    *, *::before, *::after { box-sizing: border-box; margin: 0; padding: 0; }
+
+    :root {
+      --bg:             #1e1e1e;
+      --surface:        #252526;
+      --surface-hover:  #2a2d2e;
+      --border:         #3c3c3c;
+      --accent:         #0078d4;
+      --accent-hover:   #106ebe;
+      --text:           #d4d4d4;
+      --text-dim:       #888888;
+      --success:        #4ec9b0;
+      --error:          #f44747;
+      --mono: 'Cascadia Code', Consolas, 'Courier New', monospace;
+      --r: 5px;
+    }
+
+    [data-theme="light"] {
+      --bg:             #f8f8f8;
+      --surface:        #ffffff;
+      --surface-hover:  #f0f0f0;
+      --border:         #d0d0d0;
+      --accent:         #0078d4;
+      --accent-hover:   #106ebe;
+      --text:           #1f1f1f;
+      --text-dim:       #767676;
+      --success:        #0e7a6e;
+      --error:          #c72e2e;
+    }
+
+    body {
+      font-family: -apple-system, BlinkMacSystemFont, 'Segoe UI', sans-serif;
+      background: var(--bg);
+      color: var(--text);
+      height: 100vh;
+      display: grid;
+      grid-template-rows: auto 1fr;
+      overflow: hidden;
+    }
+
+    header {
+      display: flex;
+      align-items: center;
+      gap: 16px;
+      padding: 0 20px;
+      height: 48px;
+      border-bottom: 1px solid var(--border);
+      flex-shrink: 0;
+    }
+
+    header a {
+      color: var(--text-dim);
+      text-decoration: none;
+      font-size: 0.82rem;
+      white-space: nowrap;
+    }
+    header a:hover { color: var(--text); }
+
+    header h1 {
+      font-size: 1rem;
+      font-weight: 600;
+      white-space: nowrap;
+    }
+
+    .header-spacer { flex: 1; }
+
+    .theme-toggle {
+      display: flex;
+      align-items: center;
+      justify-content: center;
+      width: 30px;
+      height: 30px;
+      padding: 0;
+      border: 1px solid var(--border);
+      border-radius: var(--r);
+      background: transparent;
+      color: var(--text-dim);
+      cursor: pointer;
+      flex-shrink: 0;
+      transition: background 0.15s, color 0.15s, border-color 0.15s;
+    }
+    .theme-toggle:hover {
+      background: var(--surface-hover);
+      color: var(--text);
+      border-color: var(--accent);
+    }
+    .theme-toggle svg { display: block; pointer-events: none; }
+
+    main {
+      display: grid;
+      grid-template-columns: 340px 1fr;
+      min-height: 0;
+      overflow: hidden;
+    }
+
+    /* ── Left panel ── */
+    .panel-left {
+      border-right: 1px solid var(--border);
+      padding: 20px;
+      display: flex;
+      flex-direction: column;
+      gap: 16px;
+      overflow-y: auto;
+    }
+
+    .field { display: flex; flex-direction: column; gap: 6px; }
+
+    label {
+      font-size: 0.78rem;
+      font-weight: 600;
+      color: var(--text-dim);
+      text-transform: uppercase;
+      letter-spacing: 0.06em;
+    }
+
+    textarea, input[type="text"], select, input[type="color"] {
+      background: var(--bg);
+      border: 1px solid var(--border);
+      border-radius: var(--r);
+      color: var(--text);
+      font-family: inherit;
+      font-size: 0.88rem;
+      padding: 8px 10px;
+      transition: border-color 0.15s;
+      outline: none;
+    }
+    textarea:focus, input[type="text"]:focus, select:focus {
+      border-color: var(--accent);
+    }
+    textarea {
+      resize: vertical;
+      min-height: 90px;
+      line-height: 1.5;
+    }
+
+    select { cursor: pointer; }
+
+    .row { display: grid; grid-template-columns: 1fr 1fr; gap: 12px; }
+
+    .color-row {
+      display: flex;
+      align-items: center;
+      gap: 8px;
+    }
+    input[type="color"] {
+      width: 34px;
+      height: 34px;
+      padding: 2px;
+      cursor: pointer;
+      flex-shrink: 0;
+    }
+    .color-hex {
+      flex: 1;
+    }
+
+    /* size slider */
+    .slider-row {
+      display: flex;
+      align-items: center;
+      gap: 10px;
+    }
+    input[type="range"] {
+      flex: 1;
+      accent-color: var(--accent);
+      cursor: pointer;
+    }
+    .slider-val {
+      font-size: 0.82rem;
+      color: var(--text-dim);
+      min-width: 42px;
+      text-align: right;
+    }
+
+    .btn {
+      display: flex;
+      align-items: center;
+      justify-content: center;
+      gap: 7px;
+      padding: 8px 14px;
+      border: 1px solid var(--border);
+      border-radius: var(--r);
+      background: transparent;
+      color: var(--text);
+      font-size: 0.85rem;
+      font-family: inherit;
+      cursor: pointer;
+      transition: background 0.15s, border-color 0.15s, color 0.15s;
+      white-space: nowrap;
+    }
+    .btn:hover { background: var(--surface-hover); border-color: var(--accent); }
+    .btn-primary {
+      background: var(--accent);
+      border-color: var(--accent);
+      color: #fff;
+    }
+    .btn-primary:hover { background: var(--accent-hover); border-color: var(--accent-hover); }
+    .btn-primary:disabled { opacity: 0.45; cursor: not-allowed; }
+
+    .btn-row {
+      display: grid;
+      grid-template-columns: 1fr 1fr;
+      gap: 8px;
+      margin-top: auto;
+      padding-top: 4px;
+    }
+
+    .char-count {
+      font-size: 0.75rem;
+      color: var(--text-dim);
+      text-align: right;
+    }
+    .char-count.warn { color: var(--error); }
+
+    /* ── Right panel ── */
+    .panel-right {
+      display: flex;
+      align-items: center;
+      justify-content: center;
+      overflow: auto;
+      background: var(--bg);
+      padding: 24px;
+    }
+
+    .qr-wrap {
+      display: flex;
+      flex-direction: column;
+      align-items: center;
+      gap: 16px;
+    }
+
+    #qr-canvas {
+      border-radius: var(--r);
+      image-rendering: pixelated;
+      max-width: min(calc(100vw - 400px), 480px);
+      max-height: calc(100vh - 120px);
+    }
+
+    .placeholder {
+      display: flex;
+      flex-direction: column;
+      align-items: center;
+      justify-content: center;
+      gap: 10px;
+      color: var(--text-dim);
+      font-size: 0.85rem;
+      text-align: center;
+    }
+    .placeholder svg { opacity: 0.25; }
+
+    .status {
+      font-size: 0.78rem;
+      color: var(--text-dim);
+      text-align: center;
+    }
+    .status.error { color: var(--error); }
+
+    .toast {
+      position: fixed;
+      bottom: 20px;
+      right: 20px;
+      padding: 9px 16px;
+      background: var(--surface);
+      border: 1px solid var(--border);
+      border-radius: var(--r);
+      font-size: 0.82rem;
+      color: var(--text);
+      box-shadow: 0 4px 16px #0004;
+      opacity: 0;
+      transform: translateY(8px);
+      transition: opacity 0.2s, transform 0.2s;
+      pointer-events: none;
+    }
+    .toast.show { opacity: 1; transform: translateY(0); }
+
+    .hidden { display: none !important; }
+  </style>
+</head>
+<body>
+  <header>
+    <a href="index.html">← Utils</a>
+    <h1>QR Code</h1>
+    <div class="header-spacer"></div>
+    <button class="theme-toggle" id="theme-toggle" aria-label="Toggle theme" title="Toggle theme"></button>
+  </header>
+
+  <main>
+    <div class="panel-left">
+      <div class="field">
+        <label for="qr-input">Content</label>
+        <textarea id="qr-input" placeholder="Enter text, URL, or data…" spellcheck="false"></textarea>
+        <div class="char-count" id="char-count">0 characters</div>
+      </div>
+
+      <div class="row">
+        <div class="field">
+          <label for="ec-level">Error correction</label>
+          <select id="ec-level">
+            <option value="L">L — 7%</option>
+            <option value="M" selected>M — 15%</option>
+            <option value="Q">Q — 25%</option>
+            <option value="H">H — 30%</option>
+          </select>
+        </div>
+        <div class="field">
+          <label for="qr-size">Scale</label>
+          <div class="slider-row">
+            <input type="range" id="qr-size" min="2" max="20" value="10">
+            <span class="slider-val" id="qr-size-val">10×</span>
+          </div>
+        </div>
+      </div>
+
+      <div class="row">
+        <div class="field">
+          <label>Foreground</label>
+          <div class="color-row">
+            <input type="color" id="fg-color" value="#000000">
+            <input type="text" id="fg-hex" class="color-hex" value="#000000" maxlength="7" spellcheck="false">
+          </div>
+        </div>
+        <div class="field">
+          <label>Background</label>
+          <div class="color-row">
+            <input type="color" id="bg-color" value="#ffffff">
+            <input type="text" id="bg-hex" class="color-hex" value="#ffffff" maxlength="7" spellcheck="false">
+          </div>
+        </div>
+      </div>
+
+      <div class="field">
+        <label for="margin">Quiet zone (modules)</label>
+        <input type="range" id="margin" min="0" max="8" value="4">
+        <span class="slider-val" id="margin-val" style="margin-top:2px">4</span>
+      </div>
+
+      <div class="btn-row">
+        <button class="btn" id="btn-copy">
+          <svg width="14" height="14" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round">
+            <rect x="9" y="9" width="13" height="13" rx="2"/><path d="M5 15H4a2 2 0 0 1-2-2V4a2 2 0 0 1 2-2h9a2 2 0 0 1 2 2v1"/>
+          </svg>
+          Copy image
+        </button>
+        <button class="btn btn-primary" id="btn-download">
+          <svg width="14" height="14" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round">
+            <path d="M21 15v4a2 2 0 0 1-2 2H5a2 2 0 0 1-2-2v-4"/><polyline points="7 10 12 15 17 10"/><line x1="12" y1="15" x2="12" y2="3"/>
+          </svg>
+          Download PNG
+        </button>
+      </div>
+    </div>
+
+    <div class="panel-right">
+      <div class="qr-wrap">
+        <div class="placeholder" id="placeholder">
+          <svg width="64" height="64" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="1.2" stroke-linecap="round" stroke-linejoin="round">
+            <rect x="3" y="3" width="7" height="7" rx="1"/><rect x="14" y="3" width="7" height="7" rx="1"/>
+            <rect x="3" y="14" width="7" height="7" rx="1"/><rect x="14" y="14" width="3" height="3" rx="0.5"/>
+            <rect x="19" y="14" width="2" height="2" rx="0.5"/><rect x="14" y="19" width="2" height="2" rx="0.5"/>
+            <rect x="18" y="18" width="3" height="3" rx="0.5"/>
+          </svg>
+          Enter text to generate a QR code
+        </div>
+        <canvas id="qr-canvas" class="hidden"></canvas>
+        <div class="status hidden" id="status"></div>
+      </div>
+    </div>
+  </main>
+
+  <div class="toast" id="toast"></div>
+
+  <!--
+    qrcode-generator by kazuhikoarase — MIT License
+    https://github.com/kazuhikoarase/qrcode-generator
+  -->
+  <script src="https://cdn.jsdelivr.net/npm/qrcode-generator@1.4.4/qrcode.min.js"></script>
+
+  <script>
+    // ── Theme toggle ───────────────────────────────────────────────────────
+    const SUN_SVG = `<svg width="15" height="15" viewBox="0 0 24 24" fill="none"
+        stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round">
+      <circle cx="12" cy="12" r="5"/>
+      <line x1="12" y1="1"  x2="12" y2="3"/>  <line x1="12" y1="21" x2="12" y2="23"/>
+      <line x1="4.22" y1="4.22"  x2="5.64"  y2="5.64"/>
+      <line x1="18.36" y1="18.36" x2="19.78" y2="19.78"/>
+      <line x1="1"  y1="12" x2="3"  y2="12"/>  <line x1="21" y1="12" x2="23" y2="12"/>
+      <line x1="4.22" y1="19.78" x2="5.64"  y2="18.36"/>
+      <line x1="18.36" y1="5.64"  x2="19.78" y2="4.22"/>
+    </svg>`;
+    const MOON_SVG = `<svg width="15" height="15" viewBox="0 0 24 24" fill="none"
+        stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round">
+      <path d="M21 12.79A9 9 0 1 1 11.21 3 7 7 0 0 0 21 12.79z"/>
+    </svg>`;
+
+    const toggleBtn = document.getElementById('theme-toggle');
+    function applyTheme(theme) {
+      document.documentElement.dataset.theme = theme;
+      localStorage.setItem('utils-theme', theme);
+      const isDark = theme === 'dark';
+      toggleBtn.innerHTML = isDark ? SUN_SVG : MOON_SVG;
+      toggleBtn.setAttribute('aria-label', isDark ? 'Switch to light mode' : 'Switch to dark mode');
+      toggleBtn.setAttribute('title',      isDark ? 'Switch to light mode' : 'Switch to dark mode');
+    }
+    toggleBtn.addEventListener('click', () => {
+      applyTheme(document.documentElement.dataset.theme === 'dark' ? 'light' : 'dark');
+    });
+    applyTheme(document.documentElement.dataset.theme);
+
+    // ── QR generator ──────────────────────────────────────────────────────
+    const input      = document.getElementById('qr-input');
+    const ecLevel    = document.getElementById('ec-level');
+    const sizeSlider = document.getElementById('qr-size');
+    const sizeVal    = document.getElementById('qr-size-val');
+    const marginSlider = document.getElementById('margin');
+    const marginVal  = document.getElementById('margin-val');
+    const fgColorEl  = document.getElementById('fg-color');
+    const fgHexEl    = document.getElementById('fg-hex');
+    const bgColorEl  = document.getElementById('bg-color');
+    const bgHexEl    = document.getElementById('bg-hex');
+    const canvas     = document.getElementById('qr-canvas');
+    const placeholder = document.getElementById('placeholder');
+    const statusEl   = document.getElementById('status');
+    const charCount  = document.getElementById('char-count');
+    const btnCopy    = document.getElementById('btn-copy');
+    const btnDownload = document.getElementById('btn-download');
+    const toast      = document.getElementById('toast');
+
+    // Max capacity for QR (rough guide — actual limit depends on content/EC/version)
+    const MAX_CHARS = 2953;
+
+    let toastTimer;
+    function showToast(msg) {
+      clearTimeout(toastTimer);
+      toast.textContent = msg;
+      toast.classList.add('show');
+      toastTimer = setTimeout(() => toast.classList.remove('show'), 2200);
+    }
+
+    function isValidHex(h) { return /^#[0-9a-fA-F]{6}$/.test(h); }
+
+    function generate() {
+      const text = input.value;
+      const n = text.length;
+      charCount.textContent = `${n.toLocaleString()} character${n === 1 ? '' : 's'}`;
+      charCount.classList.toggle('warn', n > MAX_CHARS);
+
+      if (!text) {
+        canvas.classList.add('hidden');
+        placeholder.classList.remove('hidden');
+        statusEl.classList.add('hidden');
+        return;
+      }
+
+      const scale  = parseInt(sizeSlider.value, 10);
+      const margin = parseInt(marginSlider.value, 10);
+      const fg = isValidHex(fgHexEl.value) ? fgHexEl.value : '#000000';
+      const bg = isValidHex(bgHexEl.value) ? bgHexEl.value : '#ffffff';
+
+      try {
+        const qr = qrcode(0, ecLevel.value);
+        qr.addData(text);
+        qr.make();
+
+        const modules = qr.getModuleCount();
+        const size    = (modules + margin * 2) * scale;
+
+        canvas.width  = size;
+        canvas.height = size;
+        const ctx = canvas.getContext('2d');
+
+        ctx.fillStyle = bg;
+        ctx.fillRect(0, 0, size, size);
+
+        ctx.fillStyle = fg;
+        for (let row = 0; row < modules; row++) {
+          for (let col = 0; col < modules; col++) {
+            if (qr.isDark(row, col)) {
+              ctx.fillRect(
+                (col + margin) * scale,
+                (row + margin) * scale,
+                scale, scale
+              );
+            }
+          }
+        }
+
+        canvas.classList.remove('hidden');
+        placeholder.classList.add('hidden');
+        statusEl.textContent = `${modules}×${modules} modules · version ${qr.typeNumber || '?'} · ${size}×${size}px`;
+        statusEl.className = 'status';
+      } catch (err) {
+        canvas.classList.add('hidden');
+        placeholder.classList.add('hidden');
+        statusEl.textContent = err.message || 'Could not generate QR code for this input';
+        statusEl.className = 'status error';
+      }
+    }
+
+    // Sync color picker ↔ hex input
+    function syncColor(colorEl, hexEl) {
+      colorEl.addEventListener('input', () => {
+        hexEl.value = colorEl.value;
+        generate();
+      });
+      hexEl.addEventListener('input', () => {
+        if (isValidHex(hexEl.value)) {
+          colorEl.value = hexEl.value;
+          generate();
+        }
+      });
+      hexEl.addEventListener('blur', () => {
+        if (!isValidHex(hexEl.value)) hexEl.value = colorEl.value;
+      });
+    }
+    syncColor(fgColorEl, fgHexEl);
+    syncColor(bgColorEl, bgHexEl);
+
+    sizeSlider.addEventListener('input', () => {
+      sizeVal.textContent = `${sizeSlider.value}×`;
+      generate();
+    });
+    marginSlider.addEventListener('input', () => {
+      marginVal.textContent = marginSlider.value;
+      generate();
+    });
+
+    input.addEventListener('input', generate);
+    ecLevel.addEventListener('change', generate);
+
+    // ── Copy image ────────────────────────────────────────────────────────
+    btnCopy.addEventListener('click', async () => {
+      if (canvas.classList.contains('hidden')) return;
+      try {
+        const blob = await new Promise(res => canvas.toBlob(res, 'image/png'));
+        await navigator.clipboard.write([new ClipboardItem({ 'image/png': blob })]);
+        showToast('Image copied to clipboard');
+      } catch {
+        showToast('Copy failed — try downloading instead');
+      }
+    });
+
+    // ── Download PNG ──────────────────────────────────────────────────────
+    btnDownload.addEventListener('click', () => {
+      if (canvas.classList.contains('hidden')) return;
+      const a = document.createElement('a');
+      a.href = canvas.toDataURL('image/png');
+      a.download = 'qrcode.png';
+      a.click();
+    });
+
+    // Initial render
+    generate();
+  </script>
+</body>
+</html>

@@ -325,54 +325,45 @@
         <div class="char-count" id="char-count">0 characters</div>
       </div>
 
-      <div class="row">
-        <div class="field">
-          <label for="ec-level">Error correction</label>
-          <select id="ec-level">
-            <option value="L">L — 7%</option>
-            <option value="M" selected>M — 15%</option>
-            <option value="Q">Q — 25%</option>
-            <option value="H">H — 30%</option>
-          </select>
-        </div>
-        <div class="field">
-          <label for="qr-size">Scale</label>
-          <div class="slider-row">
-            <input type="range" id="qr-size" min="2" max="20" value="10">
-            <span class="slider-val" id="qr-size-val">10×</span>
-          </div>
+      <div class="field">
+        <label for="ec-level">Error correction</label>
+        <select id="ec-level">
+          <option value="L">L — 7%</option>
+          <option value="M" selected>M — 15%</option>
+          <option value="Q">Q — 25%</option>
+          <option value="H">H — 30%</option>
+        </select>
+      </div>
+      <div class="field">
+        <label for="qr-size">Scale</label>
+        <div class="slider-row">
+          <input type="range" id="qr-size" min="2" max="20" value="10">
+          <span class="slider-val" id="qr-size-val">10×</span>
         </div>
       </div>
 
-      <div class="row">
-        <div class="field">
-          <label for="fg-color">Primary color</label>
-          <div class="color-row">
-            <input type="color" id="fg-color" value="#000000">
-            <input type="text" id="fg-hex" class="color-hex" value="#000000" maxlength="7" spellcheck="false">
-          </div>
+      <div class="field">
+        <label for="fg-color">Primary color</label>
+        <div class="color-row">
+          <input type="color" id="fg-color" value="#000000">
+          <input type="text" id="fg-hex" class="color-hex" value="#000000" maxlength="7" spellcheck="false">
         </div>
-        <div class="field">
-          <label for="bg-color">Secondary color</label>
-          <div class="color-row">
-            <input type="color" id="bg-color" value="#ffffff">
-            <input type="text" id="bg-hex" class="color-hex" value="#ffffff" maxlength="7" spellcheck="false">
-          </div>
+      </div>
+      <div class="field">
+        <label for="bg-color">Secondary color</label>
+        <div class="color-row">
+          <input type="color" id="bg-color" value="#ffffff">
+          <input type="text" id="bg-hex" class="color-hex" value="#ffffff" maxlength="7" spellcheck="false">
         </div>
       </div>
 
-      <div class="row">
-        <div class="field">
-          <label for="module-shape">Module edges</label>
-          <select id="module-shape">
-            <option value="square" selected>Square</option>
-            <option value="rounded">Rounded</option>
-          </select>
-        </div>
-        <div class="field">
-          <label for="logo-image">Center image</label>
-          <input type="file" id="logo-image" accept="image/png,image/jpeg,image/webp">
-        </div>
+      <div class="field">
+        <label for="module-shape">Module edges</label>
+        <select id="module-shape">
+          <option value="square" selected>Square</option>
+          <option value="rounded">Rounded</option>
+          <option value="dots">Dots</option>
+        </select>
       </div>
       <div class="field hidden" id="corner-radius-field">
         <label for="corner-radius">Corner radius</label>
@@ -381,7 +372,32 @@
           <span class="slider-val" id="corner-radius-val">20%</span>
         </div>
       </div>
-      <button class="btn" id="btn-remove-image" type="button" disabled>Remove center image</button>
+
+      <div class="field">
+        <label for="logo-image">Center image</label>
+        <input type="file" id="logo-image" accept="image/png,image/jpeg,image/webp">
+      </div>
+      <div class="field">
+        <label for="social-logo">Social SVG</label>
+        <select id="social-logo">
+          <option value="">None</option>
+          <option value="instagram">Instagram</option>
+          <option value="facebook">Facebook</option>
+          <option value="x">X</option>
+          <option value="linkedin">LinkedIn</option>
+          <option value="youtube">YouTube</option>
+          <option value="tiktok">TikTok</option>
+          <option value="whatsapp">WhatsApp</option>
+        </select>
+      </div>
+      <div class="field hidden" id="logo-scale-field">
+        <label for="logo-scale">Center logo size (QR modules)</label>
+        <div class="slider-row">
+          <input type="range" id="logo-scale" min="3" max="5" step="2" value="5">
+          <span class="slider-val" id="logo-scale-val">5 modules</span>
+        </div>
+      </div>
+      <button class="btn" id="btn-remove-image" type="button" disabled>Remove center logo</button>
 
       <div class="field">
         <label for="margin">Quiet zone (modules)</label>
@@ -477,6 +493,10 @@
     const cornerRadiusSlider = document.getElementById('corner-radius');
     const cornerRadiusVal = document.getElementById('corner-radius-val');
     const logoInput  = document.getElementById('logo-image');
+    const socialLogo = document.getElementById('social-logo');
+    const logoScaleField = document.getElementById('logo-scale-field');
+    const logoScaleSlider = document.getElementById('logo-scale');
+    const logoScaleVal = document.getElementById('logo-scale-val');
     const removeLogoBtn = document.getElementById('btn-remove-image');
     const canvas     = document.getElementById('qr-canvas');
     const placeholder = document.getElementById('placeholder');
@@ -492,6 +512,9 @@
     let toastTimer;
     let logoImage = null;
     let logoUrl = null;
+    let socialLogoImage = null;
+    let socialSvgMarkup = null;
+    let logoLoadId = 0;
     function showToast(msg) {
       clearTimeout(toastTimer);
       toast.textContent = msg;
@@ -518,6 +541,9 @@
       const margin = parseInt(marginSlider.value, 10);
       const fg = isValidHex(fgHexEl.value) ? fgHexEl.value : '#000000';
       const bg = isValidHex(bgHexEl.value) ? bgHexEl.value : '#ffffff';
+      const centerImage = logoImage || socialLogoImage;
+      const hasCenterLogo = Boolean(centerImage);
+      logoScaleField.classList.toggle('hidden', !hasCenterLogo);
 
       try {
         const qr = qrcode(0, ecLevel.value);
@@ -526,6 +552,13 @@
 
         const modules = qr.getModuleCount();
         const size    = (modules + margin * 2) * scale;
+        let maxLogoModules = Math.max(3, Math.floor(modules * 0.28));
+        if (maxLogoModules % 2 === 0) maxLogoModules--;
+        logoScaleSlider.max = String(maxLogoModules);
+        if (parseInt(logoScaleSlider.value, 10) > maxLogoModules) {
+          logoScaleSlider.value = String(maxLogoModules);
+        }
+        logoScaleVal.textContent = `${logoScaleSlider.value} modules`;
 
         canvas.width  = size;
         canvas.height = size;
@@ -540,7 +573,11 @@
             if (qr.isDark(row, col)) {
               const x = (col + margin) * scale;
               const y = (row + margin) * scale;
-              if (moduleShape.value === 'rounded') {
+              if (moduleShape.value === 'dots') {
+                ctx.beginPath();
+                ctx.arc(x + scale / 2, y + scale / 2, scale * 0.38, 0, Math.PI * 2);
+                ctx.fill();
+              } else if (moduleShape.value === 'rounded') {
                 const radius = scale * parseInt(cornerRadiusSlider.value, 10) / 100;
                 const darkAbove = row > 0 && qr.isDark(row - 1, col);
                 const darkRight = col < modules - 1 && qr.isDark(row, col + 1);
@@ -562,23 +599,22 @@
           }
         }
 
-        if (logoImage && logoImage.complete && logoImage.naturalWidth) {
-          const codeSize = modules * scale;
-          const logoSize = codeSize * 0.16;
-          const padding = scale * 0.45;
-          const plateSize = logoSize + padding * 2;
+        if (centerImage && centerImage.complete && centerImage.naturalWidth) {
+          const logoModules = parseInt(logoScaleSlider.value, 10);
+          const plateSize = logoModules * scale;
           const plateX = (size - plateSize) / 2;
           const plateY = (size - plateSize) / 2;
-          const imageScale = Math.min(logoSize / logoImage.naturalWidth, logoSize / logoImage.naturalHeight);
-          const imageWidth = logoImage.naturalWidth * imageScale;
-          const imageHeight = logoImage.naturalHeight * imageScale;
+          const logoSize = plateSize * 0.72;
+          const imageScale = Math.min(logoSize / centerImage.naturalWidth, logoSize / centerImage.naturalHeight);
+          const imageWidth = centerImage.naturalWidth * imageScale;
+          const imageHeight = centerImage.naturalHeight * imageScale;
 
-          ctx.fillStyle = '#ffffff';
+          ctx.fillStyle = bg;
           ctx.beginPath();
-          ctx.roundRect(plateX, plateY, plateSize, plateSize, scale * 0.45);
+          ctx.roundRect(plateX, plateY, plateSize, plateSize, scale * 0.3);
           ctx.fill();
           ctx.drawImage(
-            logoImage,
+            centerImage,
             (size - imageWidth) / 2,
             (size - imageHeight) / 2,
             imageWidth,
@@ -588,7 +624,7 @@
 
         canvas.classList.remove('hidden');
         placeholder.classList.add('hidden');
-        statusEl.textContent = `${modules}×${modules} modules · version ${qr.typeNumber || '?'} · ${size}×${size}px${logoImage ? ' · H correction recommended with a center image' : ''}`;
+        statusEl.textContent = `${modules}×${modules} modules · version ${qr.typeNumber || '?'} · ${size}×${size}px${hasCenterLogo ? ' · H correction recommended with a center logo' : ''}`;
         statusEl.className = 'status';
       } catch (err) {
         canvas.classList.add('hidden');
@@ -602,12 +638,14 @@
     function syncColor(colorEl, hexEl) {
       colorEl.addEventListener('input', () => {
         hexEl.value = colorEl.value;
-        generate();
+        if (colorEl === fgColorEl && socialSvgMarkup) applySocialLogoColor();
+        else generate();
       });
       hexEl.addEventListener('input', () => {
         if (isValidHex(hexEl.value)) {
           colorEl.value = hexEl.value;
-          generate();
+          if (colorEl === fgColorEl && socialSvgMarkup) applySocialLogoColor();
+          else generate();
         }
       });
       hexEl.addEventListener('blur', () => {
@@ -617,8 +655,29 @@
     syncColor(fgColorEl, fgHexEl);
     syncColor(bgColorEl, bgHexEl);
 
+    function applySocialLogoColor() {
+      if (!socialSvgMarkup) return;
+      const loadId = logoLoadId;
+      const svg = new DOMParser().parseFromString(socialSvgMarkup, 'image/svg+xml');
+      const root = svg.documentElement;
+      const color = isValidHex(fgHexEl.value) ? fgHexEl.value : '#000000';
+      root.setAttribute('fill', color);
+      root.querySelectorAll('[fill]').forEach((shape) => shape.setAttribute('fill', color));
+      const image = new Image();
+      image.onload = () => {
+        if (loadId !== logoLoadId) return;
+        socialLogoImage = image;
+        generate();
+      };
+      image.src = `data:image/svg+xml;charset=utf-8,${encodeURIComponent(new XMLSerializer().serializeToString(root))}`;
+    }
+
     moduleShape.addEventListener('change', () => {
       cornerRadiusField.classList.toggle('hidden', moduleShape.value !== 'rounded');
+      generate();
+    });
+    logoScaleSlider.addEventListener('input', () => {
+      logoScaleVal.textContent = `${logoScaleSlider.value} modules`;
       generate();
     });
     cornerRadiusSlider.addEventListener('input', () => {
@@ -628,6 +687,10 @@
     logoInput.addEventListener('change', () => {
       const file = logoInput.files && logoInput.files[0];
       if (!file) return;
+      logoLoadId++;
+      socialLogo.value = '';
+      socialSvgMarkup = null;
+      socialLogoImage = null;
       if (logoUrl) URL.revokeObjectURL(logoUrl);
       logoUrl = URL.createObjectURL(file);
       logoImage = new Image();
@@ -640,11 +703,48 @@
       };
       logoImage.src = logoUrl;
       removeLogoBtn.disabled = false;
+      generate();
     });
-    removeLogoBtn.addEventListener('click', () => {
+
+    socialLogo.addEventListener('change', async () => {
+      const iconName = socialLogo.value;
+      const loadId = ++logoLoadId;
       if (logoUrl) URL.revokeObjectURL(logoUrl);
       logoUrl = null;
       logoImage = null;
+      socialSvgMarkup = null;
+      logoInput.value = '';
+      socialLogoImage = null;
+      removeLogoBtn.disabled = !iconName;
+      generate();
+      if (!iconName) return;
+
+      try {
+        const response = await fetch(`https://cdn.jsdelivr.net/npm/simple-icons@13.21.0/icons/${iconName}.svg`);
+        if (!response.ok) throw new Error('Could not load social SVG');
+        const svg = new DOMParser().parseFromString(await response.text(), 'image/svg+xml');
+        const root = svg.documentElement;
+        if (root.tagName.toLowerCase() !== 'svg' || svg.querySelector('parsererror')) {
+          throw new Error('Invalid social SVG');
+        }
+        socialSvgMarkup = new XMLSerializer().serializeToString(root);
+        applySocialLogoColor();
+      } catch {
+        if (loadId !== logoLoadId) return;
+        socialLogo.value = '';
+        removeLogoBtn.disabled = true;
+        showToast('Could not load social SVG');
+        generate();
+      }
+    });
+    removeLogoBtn.addEventListener('click', () => {
+      logoLoadId++;
+      if (logoUrl) URL.revokeObjectURL(logoUrl);
+      logoUrl = null;
+      logoImage = null;
+      socialLogoImage = null;
+      socialSvgMarkup = null;
+      socialLogo.value = '';
       logoInput.value = '';
       removeLogoBtn.disabled = true;
       generate();
